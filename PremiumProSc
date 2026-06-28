@@ -1,0 +1,2500 @@
+-- [[ UNIVERSAL GUI BY GEMINI FOR DELTA EXECUTOR - OFFICIAL FINAL VERSION ]] --
+
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+local RunService = game:GetService("RunService")
+local MarketplaceService = game:GetService("MarketplaceService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+-- Dapatkan nama game secara aman
+local successGameName, gameName = pcall(function()
+    return MarketplaceService:GetProductInfo(game.PlaceId).Name
+end)
+if not successGameName then gameName = "Tidak Terdeteksi / Custom Game" end
+
+-- ==========================================
+-- FUNGSI PENDUKUNG UTAMA (ANTI-ERROR)
+-- ==========================================
+local function createInvisibleHandle(tool)
+    local handle = Instance.new("Part")
+    handle.Name = "Handle"
+    handle.Size = Vector3.new(1, 1, 1)
+    handle.Transparency = 1
+    handle.CanCollide = false
+    handle.Parent = tool
+end
+
+local function giveToolToPlayer(tool)
+    if LocalPlayer and LocalPlayer:FindFirstChild("Backpack") then
+        tool.Parent = LocalPlayer.Backpack
+    end
+end
+
+-- Container Folder
+local blockFolder = workspace:FindFirstChild("Delta_Spawned_Blocks") or Instance.new("Folder", workspace)
+blockFolder.Name = "Delta_Spawned_Blocks"
+
+local blockPreviewFolder = workspace:FindFirstChild("Block_Preview_Folder") or Instance.new("Folder", workspace)
+blockPreviewFolder.Name = "Block_Preview_Folder"
+
+local stairsFolder = workspace:FindFirstChild("Delta_Spawned_Stairs") or Instance.new("Folder", workspace)
+stairsFolder.Name = "Delta_Spawned_Stairs"
+
+local previewFolder = workspace:FindFirstChild("Tangga_Preview_Folder") or Instance.new("Folder", workspace)
+previewFolder.Name = "Tangga_Preview_Folder"
+
+local climbStairsFolder = workspace:FindFirstChild("Delta_Spawned_Climb_Stairs") or Instance.new("Folder", workspace)
+climbStairsFolder.Name = "Delta_Spawned_Climb_Stairs"
+
+local climbPreviewFolder = workspace:FindFirstChild("Climb_Stairs_Preview_Folder") or Instance.new("Folder", workspace)
+climbPreviewFolder.Name = "Climb_Stairs_Preview_Folder"
+
+-- Setup UI Utama
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "DeltaUniversalGui"
+ScreenGui.ResetOnSpawn = false
+pcall(function() ScreenGui.Parent = game:GetService("CoreGui") end)
+if not ScreenGui.Parent then ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui") end
+
+local function enableDragging(frame, dragHandle)
+    local dragging, dragInput, dragStart, startPos
+    dragHandle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true; dragStart = input.Position; startPos = frame.Position
+            input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
+        end
+    end)
+    dragHandle.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+end
+
+-- Tombol Aktivasi ✨
+local ToggleButton = Instance.new("ImageButton")
+ToggleButton.Size = UDim2.new(0, 60, 0, 60)
+ToggleButton.Position = UDim2.new(0.1, 0, 0.4, 0)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.BorderSizePixel = 0
+ToggleButton.Active = true
+ToggleButton.Parent = ScreenGui
+Instance.new("UICorner", ToggleButton).CornerRadius = UDim.new(1, 0)
+
+local StarIcon = Instance.new("ImageLabel")
+StarIcon.Size = UDim2.new(0, 35, 0, 35)
+StarIcon.Position = UDim2.new(0.5, -17, 0.5, -17)
+StarIcon.BackgroundTransparency = 1
+StarIcon.Image = "rbxassetid://6015897027"
+StarIcon.ImageColor3 = Color3.fromRGB(40, 40, 40)
+StarIcon.Parent = ToggleButton
+
+local EmojiLabel = Instance.new("TextLabel")
+EmojiLabel.Size = UDim2.new(1, 0, 1, 0)
+EmojiLabel.BackgroundTransparency = 1
+EmojiLabel.Text = "✨"
+EmojiLabel.TextSize = 22
+EmojiLabel.Parent = ToggleButton
+
+enableDragging(ToggleButton, ToggleButton)
+
+-- Main Menu Panel
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 550, 0, 350)
+MainFrame.Position = UDim2.new(0.5, -275, 0.5, -175)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MainFrame.BackgroundTransparency = 0.25
+MainFrame.Visible = false
+MainFrame.Active = true
+MainFrame.Parent = ScreenGui
+
+local DragHeader = Instance.new("Frame")
+DragHeader.Size = UDim2.new(1, 0, 0, 25)
+DragHeader.BackgroundTransparency = 1
+DragHeader.Parent = MainFrame
+enableDragging(MainFrame, DragHeader)
+
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
+
+local MainMenuPage = Instance.new("ScrollingFrame")
+MainMenuPage.Size = UDim2.new(1, -20, 1, -35)
+MainMenuPage.Position = UDim2.new(0, 10, 0, 25)
+MainMenuPage.BackgroundTransparency = 1
+MainMenuPage.ScrollBarThickness = 4
+MainMenuPage.Parent = MainFrame
+
+local UIList = Instance.new("UIListLayout")
+UIList.Parent = MainMenuPage
+UIList.SortOrder = Enum.SortOrder.LayoutOrder
+UIList.Padding = UDim.new(0, 10)
+UIList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    MainMenuPage.CanvasSize = UDim2.new(0, 0, 0, UIList.AbsoluteContentSize.Y + 30)
+end)
+
+local ThemeObjects = { Headers = {}, Texts = {}, SubTexts = {}, Inputs = {} }
+local currentTheme = "Dark"
+
+local function applyThemeColor(object, typeOfObj, theme)
+    if theme == "Dark" then
+        MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+        if typeOfObj == "Header" then object.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+        elseif typeOfObj == "Text" then object.TextColor3 = Color3.fromRGB(255, 255, 255)
+        elseif typeOfObj == "SubText" then object.TextColor3 = Color3.fromRGB(200, 200, 200)
+        elseif typeOfObj == "Input" then object.BackgroundColor3 = Color3.fromRGB(45, 45, 45); object.TextColor3 = Color3.fromRGB(255, 255, 255) end
+    else
+        MainFrame.BackgroundColor3 = Color3.fromRGB(240, 240, 240)
+        if typeOfObj == "Header" then object.BackgroundColor3 = Color3.fromRGB(215, 215, 215)
+        elseif typeOfObj == "Text" then object.TextColor3 = Color3.fromRGB(30, 30, 30)
+        elseif typeOfObj == "SubText" then object.TextColor3 = Color3.fromRGB(70, 70, 70)
+        elseif typeOfObj == "Input" then object.BackgroundColor3 = Color3.fromRGB(200, 200, 200); object.TextColor3 = Color3.fromRGB(30, 30, 30) end
+    end
+end
+
+local function switchTheme(theme)
+    currentTheme = theme
+    applyThemeColor(MainFrame, "MainFrame", theme)
+    for _, obj in pairs(ThemeObjects.Headers) do applyThemeColor(obj, "Header", theme) end
+    for _, obj in pairs(ThemeObjects.Texts) do applyThemeColor(obj, "Text", theme) end
+    for _, obj in pairs(ThemeObjects.SubTexts) do applyThemeColor(obj, "SubText", theme) end
+    for _, obj in pairs(ThemeObjects.Inputs) do applyThemeColor(obj, "Input", theme) end
+end
+
+local function createCategory(name, order)
+    local Header = Instance.new("Frame")
+    Header.Size = UDim2.new(1, 0, 0, 40)
+    Header.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    Header.BackgroundTransparency = 0.3
+    Header.LayoutOrder = order
+    Header.Parent = MainMenuPage
+    table.insert(ThemeObjects.Headers, Header)
+    Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 6)
+
+    local Title = Instance.new("TextLabel")
+    Title.Size = UDim2.new(0, 250, 1, 0)
+    Title.Position = UDim2.new(0, 10, 0, 0)
+    Title.Text = name
+    Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Title.TextSize = 16
+    Title.Font = Enum.Font.SourceSansBold
+    Title.BackgroundTransparency = 1
+    Title.TextXAlignment = Enum.TextXAlignment.Left
+    Title.Parent = Header
+    table.insert(ThemeObjects.Texts, Title)
+
+    local ToggleBtn = Instance.new("TextButton")
+    ToggleBtn.Size = UDim2.new(0, 40, 1, 0)
+    ToggleBtn.Position = UDim2.new(1, -45, 0, 0)
+    ToggleBtn.Text = "<" 
+    ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    ToggleBtn.TextSize = 18
+    ToggleBtn.BackgroundTransparency = 1
+    ToggleBtn.Parent = Header
+    table.insert(ThemeObjects.Texts, ToggleBtn)
+
+    local ContentFrame = Instance.new("Frame")
+    ContentFrame.Size = UDim2.new(1, 0, 0, 0)
+    ContentFrame.BackgroundTransparency = 1
+    ContentFrame.ClipsDescendants = true
+    ContentFrame.LayoutOrder = order + 1
+    ContentFrame.Parent = MainMenuPage
+
+    local List = Instance.new("UIListLayout")
+    List.Parent = ContentFrame
+    List.Padding = UDim.new(0, 5)
+
+    List:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        if ToggleBtn.Text == "<" then ContentFrame.Size = UDim2.new(1, 0, 0, List.AbsoluteContentSize.Y) end
+    end)
+
+    ToggleBtn.MouseButton1Click:Connect(function()
+        if ToggleBtn.Text == "<" then
+            ToggleBtn.Text = ">"
+            TweenService:Create(ContentFrame, TweenInfo.new(0.3), {Size = UDim2.new(1, 0, 0, 0)}):Play()
+        else
+            ToggleBtn.Text = "<"
+            TweenService:Create(ContentFrame, TweenInfo.new(0.3), {Size = UDim2.new(1, 0, 0, List.AbsoluteContentSize.Y)}):Play()
+        end
+    end)
+
+    return ContentFrame
+end
+
+-- Kategori Lengkap
+local InfoFrame = createCategory("Informasi </>", 1)
+local SettingFrame = createCategory("Setting ⚙️", 3)
+local PowerFrame = createCategory("Power </>", 5)
+local EspFrame = createCategory("ESP 👁️", 7)
+local TpFrame = createCategory("Teleport Player 📍", 9)
+local DroneFrame = createCategory("Drone System 🛸", 11)
+local SpawnerFrame = createCategory("Spawner 🛠️", 13)
+
+-- Pembuat Komponen
+local function createTextBox(parent, label, placeholder, callback)
+    local Row = Instance.new("Frame")
+    Row.Size = UDim2.new(1, 0, 0, 35); Row.BackgroundTransparency = 1; Row.Parent = parent
+    local txt = Instance.new("TextLabel")
+    txt.Size = UDim2.new(0, 200, 1, 0); txt.Text = "      " .. label; txt.TextColor3 = Color3.fromRGB(230, 230, 230); txt.BackgroundTransparency = 1; txt.TextXAlignment = Enum.TextXAlignment.Left; txt.Position = UDim2.new(0, 15, 0, 0); txt.Parent = Row
+    table.insert(ThemeObjects.SubTexts, txt)
+    local box = Instance.new("TextBox")
+    box.Size = UDim2.new(0, 140, 0, 25); box.Position = UDim2.new(1, -155, 0, 5); box.BackgroundColor3 = Color3.fromRGB(45, 45, 45); box.TextColor3 = Color3.fromRGB(255, 255, 255); box.PlaceholderText = placeholder; box.Text = ""; box.Parent = Row
+    Instance.new("UICorner", box).CornerRadius = UDim.new(0, 4)
+    table.insert(ThemeObjects.Inputs, box)
+    box.FocusLost:Connect(function() callback(box.Text) end)
+    return box
+end
+
+local function createToggle(parent, label, callback)
+    local Row = Instance.new("Frame")
+    Row.Size = UDim2.new(1, 0, 0, 35); Row.BackgroundTransparency = 1; Row.Parent = parent
+    local txt = Instance.new("TextLabel")
+    txt.Size = UDim2.new(0, 200, 1, 0); txt.Text = "      " .. label; txt.TextColor3 = Color3.fromRGB(230, 230, 230); txt.BackgroundTransparency = 1; txt.TextXAlignment = Enum.TextXAlignment.Left; txt.Position = UDim2.new(0, 15, 0, 0); txt.Parent = Row
+    table.insert(ThemeObjects.SubTexts, txt)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 60, 0, 25); btn.Position = UDim2.new(1, -75, 0, 5); btn.BackgroundColor3 = Color3.fromRGB(150, 50, 50); btn.Text = "OFF"; btn.TextColor3 = Color3.fromRGB(255, 255, 255); btn.Parent = Row
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
+    local enabled = false
+    btn.MouseButton1Click:Connect(function()
+        enabled = not enabled
+        if enabled then btn.BackgroundColor3 = Color3.fromRGB(50, 150, 50) btn.Text = "ON" else btn.BackgroundColor3 = Color3.fromRGB(150, 50, 50) btn.Text = "OFF" end
+        callback(enabled)
+    end)
+    return btn
+end
+
+local function createSimpleButton(parent, label, callback)
+    local Row = Instance.new("Frame")
+    Row.Size = UDim2.new(1, 0, 0, 35); Row.BackgroundTransparency = 1; Row.Parent = parent
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 180, 0, 25); btn.Position = UDim2.new(1, -195, 0, 5); btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60); btn.Text = label; btn.TextColor3 = Color3.fromRGB(255, 255, 255); btn.Font = Enum.Font.SourceSansBold; btn.TextSize = 13; btn.Parent = Row
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
+    table.insert(ThemeObjects.Inputs, btn)
+    btn.MouseButton1Click:Connect(function() callback(btn) end)
+    return btn
+end
+
+-- ==========================================
+-- I. INFORMASI (UKURAN KECIL & GAME DETECTION)
+-- ==========================================
+local function createInfoLine(text)
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, 0, 0, 22); lbl.Text = "      " .. text; lbl.TextColor3 = Color3.fromRGB(190, 190, 190); lbl.TextSize = 13; lbl.Font = Enum.Font.SourceSans; lbl.BackgroundTransparency = 1; lbl.TextXAlignment = Enum.TextXAlignment.Left; lbl.Parent = InfoFrame
+    table.insert(ThemeObjects.SubTexts, lbl)
+    return lbl
+end
+createInfoLine("🎮 Game Aktif : " .. gameName)
+createInfoLine("👤 Player Name : " .. LocalPlayer.Name)
+createInfoLine("🛠️ Admin Sistem : jancokmen82")
+createInfoLine("👑 Owner Mod : GoodMan100136")
+createInfoLine("✨ UI Framework : Gemini Adaptive Engine")
+
+-- Fitur Baru Informasi: Realtime Tracker Player & Friends
+local PlayerCountLabel = createInfoLine("👥 Jumlah Player di Server : " .. #Players:GetPlayers())
+local FriendCountLabel = createInfoLine("🤝 Jumlah Teman di Server : 0")
+
+local function updateServerNetworkInfo()
+    local allPlayers = Players:GetPlayers()
+    PlayerCountLabel.Text = "      👥 Jumlah Player di Server : " .. #allPlayers
+    
+    local friendCount = 0
+    for _, p in pairs(allPlayers) do
+        if p ~= LocalPlayer then
+            local success, isFriend = pcall(function() return LocalPlayer:IsFriendsWith(p.UserId) end)
+            if success and isFriend then friendCount = friendCount + 1 end
+        end
+    end
+    FriendCountLabel.Text = "      🤝 Jumlah Teman di Server : " .. friendCount
+end
+Players.PlayerAdded:Connect(updateServerNetworkInfo)
+Players.PlayerRemoving:Connect(updateServerNetworkInfo)
+task.spawn(updateServerNetworkInfo)
+
+local CautionLabel = Instance.new("TextLabel")
+CautionLabel.Size = UDim2.new(0.95, 0, 0, 30); CautionLabel.BackgroundTransparency = 1; CautionLabel.TextColor3 = Color3.fromRGB(255, 90, 90); CautionLabel.Font = Enum.Font.SourceSansItalic; CautionLabel.TextSize = 12; CautionLabel.TextWrapped = true; CautionLabel.Text = "⚠️ Peringatan: Gunakan Dengan bijak dan jangan ngetroll!"; CautionLabel.Parent = InfoFrame
+
+-- ==========================================
+-- II. SETTING ⚙️
+-- ==========================================
+local RejoinRow = Instance.new("Frame")
+RejoinRow.Size = UDim2.new(1, 0, 0, 35); RejoinRow.BackgroundTransparency = 1; RejoinRow.Parent = SettingFrame
+local RejoinTxt = Instance.new("TextLabel")
+RejoinTxt.Size = UDim2.new(0, 200, 1, 0); RejoinTxt.Text = "      Rejoin Server"; RejoinTxt.TextColor3 = Color3.fromRGB(230, 230, 230); RejoinTxt.BackgroundTransparency = 1; RejoinTxt.TextXAlignment = Enum.TextXAlignment.Left; RejoinTxt.Position = UDim2.new(0, 15, 0, 0); RejoinTxt.Parent = RejoinRow
+table.insert(ThemeObjects.SubTexts, RejoinTxt)
+local RejoinBtn = Instance.new("TextButton")
+RejoinBtn.Size = UDim2.new(0, 80, 0, 25); RejoinBtn.Position = UDim2.new(1, -95, 0, 5); RejoinBtn.BackgroundColor3 = Color3.fromRGB(60, 120, 200); RejoinBtn.Text = "Click to RJ"; RejoinBtn.TextColor3 = Color3.fromRGB(255, 255, 255); RejoinBtn.Font = Enum.Font.SourceSansBold; RejoinBtn.Parent = RejoinRow
+Instance.new("UICorner", RejoinBtn).CornerRadius = UDim.new(0, 4)
+RejoinBtn.MouseButton1Click:Connect(function()
+    if #Players:GetPlayers() <= 1 then TeleportService:Teleport(game.PlaceId, LocalPlayer)
+    else TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer) end
+end)
+
+local TransRow = Instance.new("Frame")
+TransRow.Size = UDim2.new(1, 0, 0, 35); TransRow.BackgroundTransparency = 1; TransRow.Parent = SettingFrame
+local TransTxt = Instance.new("TextLabel")
+TransTxt.Size = UDim2.new(0, 200, 1, 0); TransTxt.Text = "      UI Transparansi"; TransTxt.TextColor3 = Color3.fromRGB(230, 230, 230); TransTxt.BackgroundTransparency = 1; TransTxt.TextXAlignment = Enum.TextXAlignment.Left; TransTxt.Position = UDim2.new(0, 15, 0, 0); TransTxt.Parent = TransRow
+table.insert(ThemeObjects.SubTexts, TransTxt)
+local SliderBar = Instance.new("Frame")
+SliderBar.Size = UDim2.new(0, 120, 0, 6); SliderBar.Position = UDim2.new(1, -135, 0, 15); SliderBar.BackgroundColor3 = Color3.fromRGB(60, 60, 60); SliderBar.Parent = TransRow
+local SliderBtn = Instance.new("TextButton")
+SliderBtn.Size = UDim2.new(0, 14, 0, 14); SliderBtn.Position = UDim2.new(0.25, -7, 0, -4); SliderBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255); SliderBtn.Text = ""; SliderBtn.Parent = SliderBar
+Instance.new("UICorner", SliderBtn).CornerRadius = UDim.new(1, 0)
+local slideDragging = false
+SliderBtn.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then slideDragging = true end end)
+UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then slideDragging = false end end)
+UserInputService.InputChanged:Connect(function(input)
+    if slideDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local percentage = math.clamp((input.Position.X - SliderBar.AbsolutePosition.X) / SliderBar.AbsoluteSize.X, 0, 1)
+        SliderBtn.Position = UDim2.new(percentage, -7, 0, -4)
+        MainFrame.BackgroundTransparency = percentage
+    end
+end)
+
+local ThemeRow = Instance.new("Frame")
+ThemeRow.Size = UDim2.new(1, 0, 0, 35); ThemeRow.BackgroundTransparency = 1; ThemeRow.Parent = SettingFrame
+local ThemeTxt = Instance.new("TextLabel")
+ThemeTxt.Size = UDim2.new(0, 200, 1, 0); ThemeTxt.Text = "      Tema UI"; ThemeTxt.TextColor3 = Color3.fromRGB(230, 230, 230); ThemeTxt.BackgroundTransparency = 1; ThemeTxt.TextXAlignment = Enum.TextXAlignment.Left; ThemeTxt.Position = UDim2.new(0, 15, 0, 0); ThemeTxt.Parent = ThemeRow
+table.insert(ThemeObjects.SubTexts, ThemeTxt)
+local ThemeBtn = Instance.new("TextButton")
+ThemeBtn.Size = UDim2.new(0, 80, 0, 25); ThemeBtn.Position = UDim2.new(1, -95, 0, 5); ThemeBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45); ThemeBtn.Text = "Hitam 🌙"; ThemeBtn.TextColor3 = Color3.fromRGB(255, 255, 255); ThemeBtn.Parent = ThemeRow
+Instance.new("UICorner", ThemeBtn).CornerRadius = UDim.new(0, 4)
+table.insert(ThemeObjects.Inputs, ThemeBtn)
+ThemeBtn.MouseButton1Click:Connect(function()
+    if currentTheme == "Dark" then ThemeBtn.Text = "Putih ☀️" switchTheme("Light") else ThemeBtn.Text = "Hitam 🌙" switchTheme("Dark") end
+end)
+
+-- ==========================================
+-- III. POWER PROGRAM </>
+-- ==========================================
+createTextBox(PowerFrame, "Set Speed", "WalkSpeed", function(val)
+    local char = LocalPlayer.Character if char and char:FindFirstChildOfClass("Humanoid") then char:FindFirstChildOfClass("Humanoid").WalkSpeed = tonumber(val) or 16 end
+end)
+createTextBox(PowerFrame, "Set Jump Power", "JumpPower", function(val)
+    local char = LocalPlayer.Character if char and char:FindFirstChildOfClass("Humanoid") then char:FindFirstChildOfClass("Humanoid").UseJumpPower = true; char:FindFirstChildOfClass("Humanoid").JumpPower = tonumber(val) or 50 end
+end)
+local InfJumpEnabled = false
+createToggle(PowerFrame, "Inf Jump", function(state) InfJumpEnabled = state end)
+UserInputService.JumpRequest:Connect(function()
+    if InfJumpEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass('Humanoid') then LocalPlayer.Character:FindFirstChildOfClass('Humanoid'):ChangeState("Jumping") end
+end)
+local NoclipEnabled = false
+createToggle(PowerFrame, "Noclip", function(state) NoclipEnabled = state end)
+RunService.Stepped:Connect(function()
+    if NoclipEnabled and LocalPlayer.Character then for _, part in pairs(LocalPlayer.Character:GetDescendants()) do if part:IsA("BasePart") then part.CanCollide = false end end end
+end)
+createToggle(PowerFrame, "Infinite zoom camera", function(state) LocalPlayer.CameraMaxZoomDistance = state and math.huge or 400 end)
+local SpinSpeed = 50 local SpinEnabled = false
+createTextBox(PowerFrame, "spin player speed", "Speed", function(val) SpinSpeed = tonumber(val) or 50 end)
+createToggle(PowerFrame, "spin player", function(state) SpinEnabled = state end)
+RunService.Heartbeat:Connect(function()
+    if SpinEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then LocalPlayer.Character.HumanoidRootPart.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.Angles(0, math.rad(SpinSpeed), 0) end
+end)
+local AirStepEnabled = false local AirBlock = nil
+createToggle(PowerFrame, "Air step", function(state) AirStepEnabled = state if not state and AirBlock then AirBlock:Destroy() AirBlock = nil end end)
+RunService.RenderStepped:Connect(function()
+    if AirStepEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local hrp = LocalPlayer.Character.HumanoidRootPart
+        if not AirBlock or not AirBlock.Parent then AirBlock = Instance.new("Part") AirBlock.Size = Vector3.new(6, 0.5, 6) AirBlock.Transparency = 1 AirBlock.Anchored = true AirBlock.Parent = workspace end
+        AirBlock.CFrame = CFrame.new(hrp.Position.X, hrp.Position.Y - 3.25, hrp.Position.Z)
+    elseif AirBlock and not AirStepEnabled then AirBlock:Destroy() AirBlock = nil end
+end)
+
+-- ==========================================
+-- IV. VISUAL ESP WORK SYSTEM
+-- ==========================================
+local ESP_Config = { Health = false, Tali = false, Nama = false, Box = false, Jarak = false, Skeleton = false, EspColor = Color3.fromRGB(255, 0, 0), BoneThickness = 1.5 }
+local ColorNames = {"Merah", "Hijau", "Biru", "Kuning", "Ungu"}
+local ColorValues = { Color3.fromRGB(255, 0, 0), Color3.fromRGB(0, 255, 0), Color3.fromRGB(0, 120, 255), Color3.fromRGB(255, 255, 0), Color3.fromRGB(180, 0, 255) }
+local currentColorIdx = 1
+
+local ColorRow = Instance.new("Frame")
+ColorRow.Size = UDim2.new(1, 0, 0, 35); ColorRow.BackgroundTransparency = 1; ColorRow.Parent = EspFrame
+local ColorTxt = Instance.new("TextLabel")
+ColorTxt.Size = UDim2.new(0, 200, 1, 0); ColorTxt.Text = "      Warna Tali & Bone"; ColorTxt.TextColor3 = Color3.fromRGB(230, 230, 230); ColorTxt.BackgroundTransparency = 1; ColorTxt.TextXAlignment = Enum.TextXAlignment.Left; ColorTxt.Position = UDim2.new(0, 15, 0, 0); ColorTxt.Parent = ColorRow
+table.insert(ThemeObjects.SubTexts, ColorTxt)
+local ColorBtn = Instance.new("TextButton")
+ColorBtn.Size = UDim2.new(0, 100, 0, 25); ColorBtn.Position = UDim2.new(1, -115, 0, 5); ColorBtn.BackgroundColor3 = ColorValues[1]; ColorBtn.Text = ColorNames[1]; ColorBtn.TextColor3 = Color3.fromRGB(255, 255, 255); ColorBtn.Font = Enum.Font.SourceSansBold; ColorBtn.Parent = ColorRow
+Instance.new("UICorner", ColorBtn).CornerRadius = UDim.new(0, 4)
+ColorBtn.MouseButton1Click:Connect(function()
+    currentColorIdx = currentColorIdx + 1; if currentColorIdx > #ColorValues then currentColorIdx = 1 end
+    ColorBtn.Text = ColorNames[currentColorIdx]; ColorBtn.BackgroundColor3 = ColorValues[currentColorIdx]; ESP_Config.EspColor = ColorValues[currentColorIdx]
+end)
+
+createTextBox(EspFrame, "Ketebalan Bone Skeleton", "Pixel", function(val) ESP_Config.BoneThickness = tonumber(val) or 1.5 end)
+createToggle(EspFrame, "ESP Nama", function(state) ESP_Config.Nama = state end)
+createToggle(EspFrame, "ESP Jarak", function(state) ESP_Config.Jarak = state end)
+createToggle(EspFrame, "ESP Health", function(state) ESP_Config.Health = state end)
+createToggle(EspFrame, "ESP Box", function(state) ESP_Config.Box = state end)
+createToggle(EspFrame, "ESP Tali (Tracers)", function(state) ESP_Config.Tali = state end)
+createToggle(EspFrame, "ESP Skeleton", function(state) ESP_Config.Skeleton = state end)
+
+local EspFolder = Instance.new("Folder", ScreenGui)
+EspFolder.Name = "DeltaUniversalESP"
+
+local function createEspForPlayer(player)
+    if player == LocalPlayer then return end
+    local Billboard = Instance.new("BillboardGui", EspFolder)
+    Billboard.AlwaysOnTop = true; Billboard.Size = UDim2.new(0, 200, 0, 50); Billboard.ExtentsOffset = Vector3.new(0, 3, 0)
+    local InfoLabel = Instance.new("TextLabel", Billboard)
+    InfoLabel.Size = UDim2.new(1, 0, 1, 0); InfoLabel.BackgroundTransparency = 1; InfoLabel.TextColor3 = Color3.fromRGB(255, 255, 255); InfoLabel.TextStrokeTransparency = 0; InfoLabel.TextSize = 14; InfoLabel.Font = Enum.Font.SourceSansBold
+    local BoxHighlight = Instance.new("Highlight", EspFolder)
+    BoxHighlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop; BoxHighlight.FillTransparency = 1; BoxHighlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+    local TracerLine = Instance.new("Frame", ScreenGui)
+    TracerLine.BorderSizePixel = 0; TracerLine.Visible = false
+    local SkeletonParts = {}
+
+    local connection
+    connection = RunService.RenderStepped:Connect(function()
+        if not player or not player.Parent then Billboard:Destroy(); BoxHighlight:Destroy(); TracerLine:Destroy(); for _, v in pairs(SkeletonParts) do v:Destroy() end connection:Disconnect(); return end
+        local char = player.Character; local root = char and char:FindFirstChild("HumanoidRootPart"); local hum = char and char:FindFirstChildOfClass("Humanoid")
+        TracerLine.Visible = false; for _, v in pairs(SkeletonParts) do v:Destroy() end; table.clear(SkeletonParts)
+
+        if root and hum and hum.Health > 0 then
+            local vector, onScreen = Camera:WorldToViewportPoint(root.Position)
+            if ESP_Config.Nama or ESP_Config.Jarak or ESP_Config.Health then
+                Billboard.Adornee = root
+                local displayStr = ""
+                if ESP_Config.Nama then displayStr = displayStr .. player.Name .. " " end
+                if ESP_Config.Jarak then 
+                    local dist = math.floor((LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and (LocalPlayer.Character.HumanoidRootPart.Position - root.Position).Magnitude) or 0)
+                    displayStr = displayStr .. "[" .. dist .. "m] "
+                end
+                if ESP_Config.Health then displayStr = displayStr .. "\nHP: " .. math.floor(hum.Health) .. "/" .. math.floor(hum.MaxHealth) end
+                InfoLabel.Text = displayStr
+            else Billboard.Adornee = nil end
+            if ESP_Config.Box then BoxHighlight.Adornee = char else BoxHighlight.Adornee = nil end
+            if ESP_Config.Tali and onScreen then
+                TracerLine.BackgroundColor3 = ESP_Config.EspColor
+                local fromPos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+                local toPos = Vector2.new(vector.X, vector.Y)
+                TracerLine.Size = UDim2.new(0, (toPos - fromPos).Magnitude, 0, 2)
+                TracerLine.Position = UDim2.new(0, (fromPos.X + toPos.X) / 2, 0, (fromPos.Y + toPos.Y) / 2)
+                TracerLine.Rotation = math.deg(math.atan2(toPos.Y - fromPos.Y, toPos.X - fromPos.X))
+                TracerLine.AnchorPoint = Vector2.new(0.5, 0.5); TracerLine.Visible = true
+            end
+            if ESP_Config.Skeleton then
+                local function drawBone(p1, p2)
+                    if p1 and p2 then
+                        local pos1, os1 = Camera:WorldToViewportPoint(p1.Position)
+                        local pos2, os2 = Camera:WorldToViewportPoint(p2.Position)
+                        if os1 and os2 then
+                            local line = Instance.new("Frame", ScreenGui)
+                            line.BorderSizePixel = 0; line.BackgroundColor3 = ESP_Config.EspColor
+                            line.Size = UDim2.new(0, (Vector2.new(pos2.X, pos2.Y) - Vector2.new(pos1.X, pos1.Y)).Magnitude, 0, ESP_Config.BoneThickness)
+                            line.Position = UDim2.new(0, (pos1.X + pos2.X)/2, 0, (pos1.Y + pos2.Y)/2)
+                            line.Rotation = math.deg(math.atan2(pos2.Y - pos1.Y, pos2.X - pos1.X))
+                            line.AnchorPoint = Vector2.new(0.5, 0.5)
+                            table.insert(SkeletonParts, line)
+                        end
+                    end
+                end
+                if char:FindFirstChild("LeftUpperArm") then
+                    drawBone(char:FindFirstChild("Head"), char:FindFirstChild("UpperTorso"))
+                    drawBone(char:FindFirstChild("UpperTorso"), char:FindFirstChild("LowerTorso"))
+                    drawBone(char:FindFirstChild("UpperTorso"), char:FindFirstChild("LeftUpperArm"))
+                    drawBone(char:FindFirstChild("UpperTorso"), char:FindFirstChild("RightUpperArm"))
+                    drawBone(char:FindFirstChild("LowerTorso"), char:FindFirstChild("LeftUpperLeg"))
+                    drawBone(char:FindFirstChild("LowerTorso"), char:FindFirstChild("RightUpperLeg"))
+                elseif char:FindFirstChild("Left Arm") then
+                    drawBone(char:FindFirstChild("Head"), char:FindFirstChild("Torso"))
+                    drawBone(char:FindFirstChild("Torso"), char:FindFirstChild("Left Arm"))
+                    drawBone(char:FindFirstChild("Torso"), char:FindFirstChild("Right Arm"))
+                    drawBone(char:FindFirstChild("Torso"), char:FindFirstChild("Left Leg"))
+                    drawBone(char:FindFirstChild("Torso"), char:FindFirstChild("Right Leg"))
+                end
+            end
+        else Billboard.Adornee = nil; BoxHighlight.Adornee = nil end
+    end)
+end
+for _, p in pairs(Players:GetPlayers()) do createEspForPlayer(p) end
+Players.PlayerAdded:Connect(createEspForPlayer)
+
+-- ==========================================
+-- V. TELEPORTATION MODULE
+-- ==========================================
+local PlayerContainer = Instance.new("Frame", TpFrame)
+PlayerContainer.Size = UDim2.new(1, 0, 0, 150); PlayerContainer.BackgroundTransparency = 1
+local PlayerScroll = Instance.new("ScrollingFrame", PlayerContainer)
+PlayerScroll.Size = UDim2.new(1, -20, 1, 0); PlayerScroll.Position = UDim2.new(0, 10, 0, 0); PlayerScroll.BackgroundTransparency = 0.5; PlayerScroll.BackgroundColor3 = Color3.fromRGB(30, 30, 30); PlayerScroll.ScrollBarThickness = 4; PlayerScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+table.insert(ThemeObjects.Headers, PlayerScroll)
+local TpListLayout = Instance.new("UIListLayout", PlayerScroll)
+TpListLayout.Padding = UDim.new(0, 4)
+TpListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function() PlayerScroll.CanvasSize = UDim2.new(0, 0, 0, TpListLayout.AbsoluteContentSize.Y + 10) end)
+
+local function updatePlayerList()
+    for _, child in pairs(PlayerScroll:GetChildren()) do if child:IsA("TextButton") then child:Destroy() end end
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then
+            local pBtn = Instance.new("TextButton", PlayerScroll)
+            pBtn.Size = UDim2.new(1, -8, 0, 30); pBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50); pBtn.Text = "   📍  " .. p.Name; pBtn.TextColor3 = Color3.fromRGB(255, 255, 255); pBtn.TextXAlignment = Enum.TextXAlignment.Left; pBtn.Font = Enum.Font.SourceSansBold; pBtn.TextSize = 14
+            Instance.new("UICorner", pBtn).CornerRadius = UDim.new(0, 4); table.insert(ThemeObjects.Inputs, pBtn)
+            pBtn.MouseButton1Click:Connect(function()
+                if p.Character and p.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then LocalPlayer.Character.HumanoidRootPart.CFrame = p.Character.HumanoidRootPart.CFrame * CFrame.new(0, 3, 0) end
+            end)
+        end
+    end
+end
+updatePlayerList(); Players.PlayerAdded:Connect(updatePlayerList); Players.PlayerRemoving:Connect(updatePlayerList)
+
+-- ==========================================
+-- VI. ISI MENU: DRONE SYSTEM 🛸
+-- ==========================================
+local DroneCount = 0
+local DroneHeight = 10
+local ActiveDrones = {}
+local RandomDroneLoop = nil
+
+local savedRideId = ""
+local savedTpId = ""
+local inputtedDroneTargetName = ""
+
+createTextBox(DroneFrame, "Set Jarak Tinggi Drone", "Angka (Def: 10)", function(val)
+    DroneHeight = tonumber(val) or 10
+end)
+
+local function getBackupTarget()
+    local available = {}
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChildOfClass("Humanoid") then
+            if p.Character:FindFirstChildOfClass("Humanoid").Health > 0 then table.insert(available, p) end
+        end
+    end
+    if #available > 0 then return available[math.random(1, #available)] end
+    return nil
+end
+
+local function spawnDrone(targetPlayer, isRandomType)
+    if not targetPlayer then return end
+    DroneCount = DroneCount + 1
+    local droneId = string.format("%02d", DroneCount)
+    
+    local dronePart = Instance.new("Part")
+    dronePart.Name = "Drone_" .. droneId
+    dronePart.Size = Vector3.new(3, 0.4, 3)
+    dronePart.Anchored = true
+    dronePart.CanCollide = true
+    dronePart.Material = Enum.Material.SmoothPlastic
+    dronePart.Parent = workspace
+    
+    local Seat = Instance.new("Seat")
+    Seat.Name = "DroneSeat"
+    Seat.Size = Vector3.new(2, 0.6, 2)
+    Seat.Anchored = false
+    Seat.CanCollide = true
+    Seat.Parent = dronePart
+    Seat.CFrame = dronePart.CFrame * CFrame.new(0, 0.3, 0)
+    
+    local weld = Instance.new("WeldConstraint")
+    weld.Part0 = dronePart; weld.Part1 = Seat; weld.Parent = dronePart
+    
+    local function CreatePropeller(x, z)
+        local arm = Instance.new("Part")
+        arm.Size = Vector3.new(0.3, 0.3, 2); arm.Material = Enum.Material.Neon; arm.Color = Color3.fromRGB(255, 255, 255); arm.Anchored = true; arm.CanCollide = false; arm.Parent = workspace
+        local rotor = Instance.new("Part")
+        rotor.Shape = Enum.PartType.Cylinder; rotor.Size = Vector3.new(0.2, 2, 2); rotor.Material = Enum.Material.Neon; rotor.Color = Color3.fromRGB(0, 255, 255); rotor.Anchored = true; rotor.CanCollide = false; rotor.Parent = workspace
+        return {arm, rotor, x, z}
+    end
+
+    local Props = { CreatePropeller(2.5, 2.5), CreatePropeller(-2.5, 2.5), CreatePropeller(2.5, -2.5), CreatePropeller(-2.5, -2.5) }
+    local bgui = Instance.new("BillboardGui", dronePart)
+    bgui.AlwaysOnTop = true; bgui.Size = UDim2.new(0, 150, 0, 30); bgui.ExtentsOffset = Vector3.new(0, 2, 0)
+    local tl = Instance.new("TextLabel", bgui)
+    tl.Size = UDim2.new(1, 0, 1, 0); tl.BackgroundTransparency = 1; tl.TextColor3 = Color3.fromRGB(255, 255, 0); tl.TextSize = 14; tl.Font = Enum.Font.SourceSansBold; tl.Text = "Drone " .. droneId .. " -> " .. targetPlayer.Name
+    
+    local droneData = { Part = dronePart, Seat = Seat, Props = Props, Label = tl, Target = targetPlayer, RandomType = isRandomType, IsRiding = false, LockDelay = false }
+    ActiveDrones[droneId] = droneData
+    
+    Seat:GetPropertyChangedSignal("Occupant"):Connect(function()
+        local occupant = Seat.Occupant
+        if occupant and occupant.Character == LocalPlayer.Character then droneData.IsRiding = true else droneData.IsRiding = false end
+    end)
+
+    local spin = 0
+    local moveConn
+    moveConn = RunService.Heartbeat:Connect(function()
+        if not dronePart or not dronePart.Parent then 
+            for _, p in pairs(Props) do p[1]:Destroy(); p[2]:Destroy() end
+            if Seat then Seat:Destroy() end
+            moveConn:Disconnect(); return 
+        end
+        
+        local currentTarget = droneData.Target
+        local targetDeadOrGone = true
+        
+        if currentTarget and currentTarget.Parent and currentTarget.Character and currentTarget.Character:FindFirstChild("HumanoidRootPart") then
+            local hum = currentTarget.Character:FindFirstChildOfClass("Humanoid")
+            if hum and hum.Health > 0 then targetDeadOrGone = false end
+        end
+        
+        if targetDeadOrGone then
+            local nextTarget = getBackupTarget()
+            if nextTarget then
+                droneData.Target = nextTarget; tl.Text = "Drone " .. droneId .. " -> " .. nextTarget.Name; currentTarget = nextTarget
+            else
+                tl.Text = "Drone " .. droneId .. " -> Menunggu Target..."; currentTarget = nil
+            end
+        end
+        
+        if currentTarget and currentTarget.Character and currentTarget.Character:FindFirstChild("HumanoidRootPart") then
+            local targetPos = currentTarget.Character.HumanoidRootPart.Position + Vector3.new(0, DroneHeight, 0)
+            dronePart.CFrame = CFrame.new(targetPos) * CFrame.Angles(0, math.rad(spin*0.1), 0)
+            
+            if droneData.IsRiding and not droneData.LockDelay then
+                local char = LocalPlayer.Character
+                local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    hrp.CFrame = droneData.Seat.CFrame + Vector3.new(0, 1, 0)
+                    hrp.AssemblyLinearVelocity = Vector3.zero; hrp.AssemblyAngularVelocity = Vector3.zero
+                end
+            end
+            
+            spin = spin + 20
+            for _, p in pairs(Props) do
+                local arm, rotor, x, z = p[1], p[2], p[3], p[4]
+                arm.CFrame = dronePart.CFrame * CFrame.new(x, 0, z)
+                rotor.CFrame = dronePart.CFrame * CFrame.new(x, 0.2, z) * CFrame.Angles(0, math.rad(spin), math.rad(90))
+            end
+        end
+    end)
+end
+
+local function executeSit(id)
+    local droneData = ActiveDrones[id]
+    if not droneData then return end
+    local seat = droneData.Seat; local char = LocalPlayer.Character
+    if seat and char then
+        local hum = char:FindFirstChildOfClass("Humanoid"); local hrp = char:FindFirstChild("HumanoidRootPart")
+        if hum and hrp then
+            droneData.LockDelay = true; hrp.CFrame = seat.CFrame + Vector3.new(0, 2, 0)
+            task.wait(0.1); hum.Sit = true; task.wait(0.1); seat:Sit(hum); task.wait(0.3)
+            droneData.IsRiding = true; droneData.LockDelay = false
+        end
+    end
+end
+
+local function executeTp(id)
+    local droneData = ActiveDrones[id]
+    if droneData and droneData.Part and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        LocalPlayer.Character.HumanoidRootPart.CFrame = droneData.Part.CFrame * CFrame.new(0, 2.5, 0)
+    end
+end
+
+createTextBox(DroneFrame, "1. Nama Player Drone", "Ketik Nama Player", function(name) inputtedDroneTargetName = name end)
+createSimpleButton(DroneFrame, "Klik Spawn Target", function()
+    if inputtedDroneTargetName ~= "" then
+        local target = nil
+        for _, p in pairs(Players:GetPlayers()) do
+            if p.Name:lower():match(inputtedDroneTargetName:lower()) then target = p break end
+        end
+        if target then spawnDrone(target, false) end
+    end
+end)
+
+createSimpleButton(DroneFrame, "2. Spawn Drone Random", function() local initialTarget = getBackupTarget() if initialTarget then spawnDrone(initialTarget, true) end end)
+createTextBox(DroneFrame, "3. Delete Drone (ID)", "Contoh: 01", function(id)
+    local droneData = ActiveDrones[id]
+    if droneData then if droneData.Part then droneData.Part:Destroy() end ActiveDrones[id] = nil end
+end)
+createSimpleButton(DroneFrame, "4. Delete All Drone", function()
+    if RandomDroneLoop then RandomDroneLoop:Disconnect() RandomDroneLoop = nil end
+    for id, d in pairs(ActiveDrones) do if d.Part then d.Part:Destroy() end end
+    table.clear(ActiveDrones); DroneCount = 0
+end)
+createTextBox(DroneFrame, "5. Masukkan ID Naik", "Simpan ID (Contoh: 01)", function(id) savedRideId = id end)
+createSimpleButton(DroneFrame, "6. Klik Langsung Naik", function() if savedRideId ~= "" then executeSit(savedRideId) end end)
+createTextBox(DroneFrame, "7. Masukkan ID TP", "Simpan ID (Contoh: 01)", function(id) savedTpId = id end)
+createSimpleButton(DroneFrame, "8. Klik Langsung TP", function() if savedTpId ~= "" then executeTp(savedTpId) end end)
+createSimpleButton(DroneFrame, "Turun / Lepas Drone", function()
+    if LocalPlayer.Character then
+        local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if hum then for _, d in pairs(ActiveDrones) do d.IsRiding = false d.LockDelay = false end if hum.SeatPart then hum.Jump = true end end
+    end
+end)
+
+-- ==========================================
+-- VII. SPAWNER MASTER (NO LIMITS CONFIGS)
+-- ==========================================
+local rotationX, rotationY, rotationZ = 0, 0, 0 local portalDuration = 25
+local customPondasiLebar, customPondasiPanjang, customRingBesar, customRingKecil, customJarumPanjang, customJarumTebal = 8, 4, 7, 5, 3.2, 0.3
+
+local bSizeX, bSizeY, bSizeZ = 4, 4, 4
+local blockColors = {Color3.fromRGB(163,162,165), Color3.fromRGB(255,0,0), Color3.fromRGB(0,255,0), Color3.fromRGB(0,0,255), Color3.fromRGB(255,255,0), Color3.fromRGB(0,0,0), Color3.fromRGB(255,255,255)}
+local blockColorNames = {"Abu-abu", "Merah", "Hijau", "Biru", "Kuning", "Hitam", "Putih"}
+local curBlockColorIdx = 1 local bMaterial = "Plastic"
+
+local tanggaUkuran, tanggaLebar, tanggaJumlah = 1, 8, 10
+local stairColors = {Color3.fromRGB(180,180,180), Color3.fromRGB(255,50,50), Color3.fromRGB(50,255,50), Color3.fromRGB(50,50,255), Color3.fromRGB(255,255,50), Color3.fromRGB(255,50,255), Color3.fromRGB(50,255,255)}
+local stairColorNames = {"Grey Metal", "Crimson Red", "Lime Green", "Ocean Blue", "Cyber Yellow", "Magenta Purple", "Cyan Aqua"}
+local curStairColorIdx = 1 local espLineEnabled = false local previewBlockEnabled = false
+
+-- Variabel Konfigurasi untuk Fitur Tangga Panjat (Climb Stairs System) + FITUR WARNA
+local climbAtas, climbSamping, climbDepan = 5, 1, 1
+local espClimbEnabled = false
+local climbAssetId = 11743311037
+local climbColors = {Color3.fromRGB(0, 230, 255), Color3.fromRGB(255, 50, 50), Color3.fromRGB(50, 255, 50), Color3.fromRGB(255, 255, 50), Color3.fromRGB(255, 255, 255), Color3.fromRGB(255, 0, 255)}
+local climbColorNames = {"Cyan Aqua", "Crimson Red", "Lime Green", "Cyber Yellow", "White Neon", "Magenta Pink"}
+local curClimbColorIdx = 1
+
+local HeaderB = Instance.new("TextLabel", SpawnerFrame); HeaderB.Size = UDim2.new(1,0,0,20); HeaderB.Text = "─── CUSTOM BLOCK SYSTEM ───"; HeaderB.TextColor3 = Color3.fromRGB(140,140,140); HeaderB.Font = Enum.Font.SourceSansBold; HeaderB.BackgroundTransparency = 1
+
+createTextBox(SpawnerFrame, "Ukuran Block X (Panjang)", "Angka Bebas", function(val) bSizeX = tonumber(val) or 4 end)
+createTextBox(SpawnerFrame, "Ukuran Block Y (Tinggi)", "Angka Bebas", function(val) bSizeY = tonumber(val) or 4 end)
+createTextBox(SpawnerFrame, "Ukuran Block Z (Lebar)", "Angka Bebas", function(val) bSizeZ = tonumber(val) or 4 end)
+
+local BlockColorBtn = createSimpleButton(SpawnerFrame, "Warna Block: Abu-abu", function(btn)
+    curBlockColorIdx = curBlockColorIdx + 1; if curBlockColorIdx > #blockColors then curBlockColorIdx = 1 end
+    btn.Text = "Warna Block: " .. blockColorNames[curBlockColorIdx]; btn.BackgroundColor3 = blockColors[curBlockColorIdx]
+end)
+local BlockMatBtn = createSimpleButton(SpawnerFrame, "Material: Plastic", function(btn)
+    local mats = {"Plastic", "SmoothPlastic", "Neon", "Wood", "Glass", "ForceField"}
+    local cur = table.find(mats, bMaterial) or 1 local nxt = cur + 1; if nxt > #mats then nxt = 1 end bMaterial = mats[nxt] btn.Text = "Material: " .. bMaterial
+end)
+
+createSimpleButton(SpawnerFrame, "ESP Preview Block: OFF", function(btn)
+    previewBlockEnabled = not previewBlockEnabled
+    if previewBlockEnabled then 
+        btn.Text = "ESP Preview Block: ON" 
+        btn.BackgroundColor3 = Color3.fromRGB(0, 200, 100) 
+    else 
+        btn.Text = "ESP Preview Block: OFF" 
+        btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60) 
+        blockPreviewFolder:ClearAllChildren() 
+    end
+end)
+
+RunService.RenderStepped:Connect(function()
+    blockPreviewFolder:ClearAllChildren() 
+    if not previewBlockEnabled then return end
+    local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") if not root then return end
+    
+    local p = Instance.new("Part", blockPreviewFolder) 
+    p.Size = Vector3.new(bSizeX, bSizeY, bSizeZ)
+    p.CFrame = root.CFrame * CFrame.new(0, 0, -(bSizeZ/2 + 4)) 
+    p.Material = Enum.Material.ForceField; p.Color = blockColors[curBlockColorIdx]; p.Anchored = true; p.CanCollide = false
+    local sel = Instance.new("SelectionBox", p); sel.Adornee = p; sel.Color3 = blockColors[curBlockColorIdx]
+end)
+
+createSimpleButton(SpawnerFrame, "Spawn Block Depan Player 📦", function()
+    local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") if not root then return end
+    local p = Instance.new("Part", blockFolder) p.Name = "Spawned_Block_" .. LocalPlayer.Name; p.Size = Vector3.new(bSizeX, bSizeY, bSizeZ)
+    p.CFrame = root.CFrame * CFrame.new(0, 0, -(bSizeZ/2 + 4)) p.Color = blockColors[curBlockColorIdx] p.Material = Enum.Material[bMaterial] or Enum.Material.Plastic; p.Anchored = true; p.CanCollide = true
+end)
+createSimpleButton(SpawnerFrame, "❌ Delete All Block Buatan", function() blockFolder:ClearAllChildren() end)
+
+local HeaderP = Instance.new("TextLabel", SpawnerFrame); HeaderP.Size = UDim2.new(1,0,0,20); HeaderP.Text = "─── PORTAL SYSTEM ───"; HeaderP.TextColor3 = Color3.fromRGB(140,140,140); HeaderP.Font = Enum.Font.SourceSansBold; HeaderP.BackgroundTransparency = 1
+
+createTextBox(SpawnerFrame, "Rotasi block x", "Nilai", function(val) rotationX = tonumber(val) or 0 end)
+createTextBox(SpawnerFrame, "Rotasi block y", "Nilai", function(val) rotationY = tonumber(val) or 0 end)
+createTextBox(SpawnerFrame, "Rotasi block z", "Nilai", function(val) rotationZ = tonumber(val) or 0 end)
+createTextBox(SpawnerFrame, "Set Durasi Portal", "Detik", function(val) portalDuration = tonumber(val) or 25 end)
+createTextBox(SpawnerFrame, "Set Pondasi (Lebar,Panjang)", "8,4", function(val) local l, p = val:match("([^,]+),([^,]+)") customPondasiLebar = tonumber(l) or 8 customPondasiPanjang = tonumber(p) or 4 end)
+createTextBox(SpawnerFrame, "Set Ring Besar (Diameter)", "7", function(val) customRingBesar = tonumber(val) or 7 end)
+createTextBox(SpawnerFrame, "Set Ring Kecil (Diameter)", "5", function(val) customRingKecil = tonumber(val) or 5 end)
+createTextBox(SpawnerFrame, "Set Jarum (Panjang,Tebal)", "3.2,0.3", function(val) local p, t = val:match("([^,]+),([^,]+)") customJarumPanjang = tonumber(p) or 3.2 customJarumTebal = tonumber(t) or 0.3 end)
+
+local function buildPortalDesign(position, targetCFrame, isExitPortal)
+    local ModelContainer = Instance.new("Model", workspace) ModelContainer.Name = isExitPortal and "Exit_Portal" or "Entrance_Portal"
+    
+    local BasePart = Instance.new("Part", ModelContainer) BasePart.Size = Vector3.new(customPondasiLebar, 0.4, customPondasiPanjang) BasePart.Anchored = true; BasePart.CFrame = targetCFrame * CFrame.new(0, -3.3, 0)
+    BasePart.Color = Color3.fromRGB(0, 0, 0); BasePart.Material = Enum.Material.Plastic
+    
+    local StepPart = Instance.new("Part", ModelContainer) StepPart.Size = Vector3.new(math.max(2, customPondasiLebar - 2), 0.4, math.max(1, customPondasiPanjang - 1)) StepPart.Anchored = true; StepPart.CFrame = BasePart.CFrame * CFrame.new(0, 0.4, 0)
+    StepPart.Color = Color3.fromRGB(15, 15, 15); StepPart.Material = Enum.Material.Plastic
+
+    local mainColor = isExitPortal and Color3.fromRGB(255, 100, 0) or Color3.fromRGB(0, 255, 150)
+    local subColor = isExitPortal and Color3.fromRGB(255, 200, 0) or Color3.fromRGB(0, 150, 255)
+    local function makeRing(size, thickness) local r = Instance.new("Part", ModelContainer) r.Size = Vector3.new(size, size, thickness) r.Shape = Enum.PartType.Cylinder; r.Material = Enum.Material.Neon; r.Color = mainColor; r.Anchored = true; r.CanCollide = false; r.CFrame = targetCFrame; return r end
+    local Ring1 = makeRing(customRingBesar, 0.8) local Ring2 = makeRing(customRingBesar - 0.5, 0.6) Ring2.Color = subColor
+    local Ring3 = makeRing(customRingKecil, 0.5) local Ring4 = makeRing(customRingKecil - 0.8, 0.4) Ring4.Color = Color3.fromRGB(255,255,255)
+    local Aura = makeRing(customRingKecil - 1, 0.2) Aura.Material = Enum.Material.Glass; Aura.Color = subColor; Aura.Transparency = 0.4
+    local Needle = Instance.new("Part", ModelContainer) Needle.Size = Vector3.new(customJarumTebal, customJarumPanjang, customJarumTebal) Needle.Material = Enum.Material.Neon; Needle.Color = Color3.fromRGB(255,255,255) Needle.Anchored = true; Needle.CanCollide = false; Needle.CFrame = targetCFrame
+    local Hitbox = Instance.new("Part", ModelContainer) Hitbox.Size = Vector3.new(customRingBesar, customRingBesar + 1, 1.5) Hitbox.Transparency = 1; Hitbox.Anchored = true; Hitbox.CanCollide = false; Hitbox.CFrame = targetCFrame
+    return ModelContainer, Hitbox, {Ring1, Ring2, Ring3, Ring4, Aura, Needle}
+end
+
+createSimpleButton(SpawnerFrame, "Get tools TP Portal", function()
+    local Tool = Instance.new("Tool") Tool.Name = "TP Portal Spawner"; Tool.RequiresHandle = true; createInvisibleHandle(Tool)
+    Tool.Activated:Connect(function()
+        local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") if not root then return end
+        local mouse = LocalPlayer:GetMouse() local hitPos = mouse.Hit.p
+        if hitPos and mouse.Target then
+            local SystemFolder = Instance.new("Folder", workspace) SystemFolder.Name = "Active_Portal_System"
+            local entCF = root.CFrame * CFrame.new(0, 0, -7) local EntMod, EntHit, EntVis = buildPortalDesign(root.Position, entCF, false) EntMod.Parent = SystemFolder
+            local exCF = CFrame.new(hitPos + Vector3.new(0, (customRingBesar/2) + 0.5, 0)) * CFrame.Angles(0, math.rad(root.Orientation.Y + 180), 0) local ExMod, ExHit, ExVis = buildPortalDesign(hitPos, exCF, true) ExMod.Parent = SystemFolder
+            local rot = 0 local anim
+            anim = RunService.Heartbeat:Connect(function()
+                if SystemFolder and SystemFolder.Parent then rot = rot + 9
+                    EntVis[1].CFrame = entCF * CFrame.Angles(0, 0, math.rad(rot)) EntVis[2].CFrame = entCF * CFrame.Angles(0, 0, math.rad(-rot*1.5)) EntVis[3].CFrame = entCF * CFrame.Angles(0, 0, math.rad(rot*2)) EntVis[4].CFrame = entCF * CFrame.Angles(0, 0, math.rad(-rot*2.5)) EntVis[5].CFrame = entCF * CFrame.Angles(0, 0, math.rad(-rot*0.5)) EntVis[6].CFrame = entCF * CFrame.Angles(0, 0, math.rad(rot*4))
+                    ExVis[1].CFrame = exCF * CFrame.Angles(0, 0, math.rad(-rot)) ExVis[2].CFrame = exCF * CFrame.Angles(0, 0, math.rad(rot*1.5)) ExVis[3].CFrame = exCF * CFrame.Angles(0, 0, math.rad(-rot*2)) ExVis[4].CFrame = exCF * CFrame.Angles(0, 0, math.rad(rot*2.5)) ExVis[5].CFrame = exCF * CFrame.Angles(0, 0, math.rad(rot*0.5)) ExVis[6].CFrame = exCF * CFrame.Angles(0, 0, math.rad(-rot*4))
+                else anim:Disconnect() end
+            end)
+            EntHit.Touched:Connect(function(part) local tc = part.Parent if tc and tc:FindFirstChildOfClass("Humanoid") and tc:FindFirstChild("HumanoidRootPart") and tc:FindFirstChildOfClass("Humanoid").Health > 0 then EntHit.CanTouch = false tc.HumanoidRootPart.CFrame = exCF * CFrame.new(0, -1, -3) task.wait(0.6) if EntHit and EntHit.Parent then EntHit.CanTouch = true end end end)
+            game:GetService("Debris"):AddItem(SystemFolder, portalDuration)
+        end
+    end)
+    giveToolToPlayer(Tool)
+end)
+
+local HeaderS = Instance.new("TextLabel", SpawnerFrame); HeaderS.Size = UDim2.new(1,0,0,20); HeaderS.Text = "─── CUSTOM STAIRS SYSTEM ───"; HeaderS.TextColor3 = Color3.fromRGB(140,140,140); HeaderS.Font = Enum.Font.SourceSansBold; HeaderS.BackgroundTransparency = 1
+
+createTextBox(SpawnerFrame, "Set Ukuran Tangga", "Tebal Tanpa Batas", function(val) tanggaUkuran = tonumber(val) or 1 end)
+createTextBox(SpawnerFrame, "Set Lebar Tangga", "Samping Tanpa Batas", function(val) tanggaLebar = tonumber(val) or 8 end)
+createTextBox(SpawnerFrame, "Set Jumlah Tangga", "Tingkat Tanpa Batas", function(val) tanggaJumlah = tonumber(val) or 10 end)
+
+local StairColorBtn = createSimpleButton(SpawnerFrame, "Warna Tangga: Grey Metal", function(btn)
+    curStairColorIdx = curStairColorIdx + 1; if curStairColorIdx > #stairColors then curStairColorIdx = 1 end
+    btn.Text = "Warna Tangga: " .. stairColorNames[curStairColorIdx]; btn.BackgroundColor3 = stairColors[curStairColorIdx]
+end)
+createSimpleButton(SpawnerFrame, "ESP Preview Tangga: OFF", function(btn)
+    espLineEnabled = not espLineEnabled
+    if espLineEnabled then btn.Text = "ESP Preview Tangga: ON" btn.BackgroundColor3 = Color3.fromRGB(0, 200, 100) else btn.Text = "ESP Preview Tangga: OFF" btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60) previewFolder:ClearAllChildren() end
+end)
+
+RunService.RenderStepped:Connect(function()
+    previewFolder:ClearAllChildren() if not espLineEnabled then return end
+    local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") if not root then return end
+    local startCF = root.CFrame * CFrame.new(0, -2, -4)
+    for i = 1, tanggaJumlah do
+        local p = Instance.new("Part", previewFolder) p.Size = Vector3.new(tanggaLebar, tanggaUkuran, tanggaUkuran * 1.5) p.CFrame = startCF * CFrame.new(0, (i * tanggaUkuran), -(i * (tanggaUkuran * 1.2))) p.Material = Enum.Material.ForceField; p.Color = stairColors[curStairColorIdx]; p.Anchored = true; p.CanCollide = false
+        local sel = Instance.new("SelectionBox", p); sel.Adornee = p; sel.Color3 = stairColors[curStairColorIdx]
+    end
+end)
+
+createSimpleButton(SpawnerFrame, "Spawn Tangga Instan 🪜", function()
+    local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") if not root then return end
+    local ModelContainer = Instance.new("Model", stairsFolder) ModelContainer.Name = "Stairs_" .. LocalPlayer.Name
+    local startCF = root.CFrame * CFrame.new(0, -2, -4)
+    for i = 1, tanggaJumlah do
+        local step = Instance.new("Part", ModelContainer) step.Size = Vector3.new(tanggaLebar, tanggaUkuran, tanggaUkuran * 1.5) step.CFrame = startCF * CFrame.new(0, (i * tanggaUkuran), -(i * (tanggaUkuran * 1.2))) step.Color = stairColors[curStairColorIdx]; step.Material = Enum.Material.DiamondPlate; step.Anchored = true; step.CanCollide = true
+    end
+end)
+createSimpleButton(SpawnerFrame, "❌ Delete All Stairs", function() stairsFolder:ClearAllChildren() end)
+
+-- =======================================================
+-- FITUR BARU: SYSTEM SPAWNER TANGGA CLIMB (DENGAN WARNA)
+-- =======================================================
+local HeaderC = Instance.new("TextLabel", SpawnerFrame); HeaderC.Size = UDim2.new(1,0,0,20); HeaderC.Text = "─── CLIMB STAIRS SYSTEM (ASSET) ───"; HeaderC.TextColor3 = Color3.fromRGB(0,215,255); HeaderC.Font = Enum.Font.SourceSansBold; HeaderC.BackgroundTransparency = 1
+
+createTextBox(SpawnerFrame, "Set Jumlah Tangga Ke Atas", "No Limit (Def: 5)", function(val) climbAtas = tonumber(val) or 5 end)
+createTextBox(SpawnerFrame, "Set Jumlah Tangga Ke Samping", "No Limit (Def: 1)", function(val) climbSamping = tonumber(val) or 1 end)
+createTextBox(SpawnerFrame, "Set Jumlah Tangga Ke Depan", "No Limit (Def: 1)", function(val) climbDepan = tonumber(val) or 1 end)
+
+local ClimbColorBtn = createSimpleButton(SpawnerFrame, "Warna Climb: Cyan Aqua", function(btn)
+    curClimbColorIdx = curClimbColorIdx + 1
+    if curClimbColorIdx > #climbColors then curClimbColorIdx = 1 end
+    btn.Text = "Warna Climb: " .. climbColorNames[curClimbColorIdx]
+    btn.BackgroundColor3 = climbColors[curClimbColorIdx]
+end)
+
+createSimpleButton(SpawnerFrame, "Esp Line Tangga Climb: OFF", function(btn)
+    espClimbEnabled = not espClimbEnabled
+    if espClimbEnabled then 
+        btn.Text = "Esp Line Tangga Climb: ON" 
+        btn.BackgroundColor3 = Color3.fromRGB(0, 200, 100) 
+    else 
+        btn.Text = "Esp Line Tangga Climb: OFF" 
+        btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60) 
+        climbPreviewFolder:ClearAllChildren() 
+    end
+end)
+
+RunService.RenderStepped:Connect(function()
+    climbPreviewFolder:ClearAllChildren()
+    if not espClimbEnabled then return end
+    local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") if not root then return end
+    
+    local startCF = root.CFrame * CFrame.new(0, 0, -6)
+    for x = 1, climbSamping do
+        for y = 1, climbAtas do
+            for z = 1, climbDepan do
+                local p = Instance.new("Part", climbPreviewFolder)
+                p.Size = Vector3.new(4, 4, 1)
+                p.CFrame = startCF * CFrame.new((x - 1) * 4, (y - 1) * 4, -(z - 1) * 1)
+                p.Material = Enum.Material.ForceField
+                p.Color = climbColors[curClimbColorIdx]
+                p.Anchored = true; p.CanCollide = false
+                local sel = Instance.new("SelectionBox", p); sel.Adornee = p; sel.Color3 = climbColors[curClimbColorIdx]
+            end
+        end
+    end
+end)
+
+createSimpleButton(SpawnerFrame, "Spawn Tangga Climb Instan 🪜⚡", function()
+    local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") if not root then return end
+    local baseModel = nil
+    local success, err = pcall(function()
+        baseModel = game:GetObjects("rbxassetid://" .. climbAssetId)[1]
+    end)
+    if not success or not baseModel then
+        baseModel = Instance.new("Part") baseModel.Size = Vector3.new(4, 4, 1) baseModel.Material = Enum.Material.Neon
+    end
+
+    local GroupModel = Instance.new("Model", climbStairsFolder)
+    GroupModel.Name = "ClimbStairs_Cluster_" .. LocalPlayer.Name
+    local startCF = root.CFrame * CFrame.new(0, 0, -6)
+
+    for x = 1, climbSamping do
+        for y = 1, climbAtas do
+            for z = 1, climbDepan do
+                local obj = baseModel:Clone()
+                if obj:IsA("Model") then
+                    obj:ScaleTo(1)
+                    obj:PivotTo(startCF * CFrame.new((x - 1) * 4, (y - 1) * 4, -(z - 1) * 1))
+                    for _, child in pairs(obj:GetDescendants()) do
+                        if child:IsA("BasePart") then 
+                            child.Anchored = true 
+                            child.CanCollide = true 
+                            child.Color = climbColors[curClimbColorIdx]
+                            -- Jika objek adalah Mesh/Model bawaan game, hapus texture lama agar warnanya keluar sempurna
+                            if child:IsA("MeshPart") or child:FindFirstChildOfClass("Texture") then child.Material = Enum.Material.Neon end
+                        end
+                    end
+                else
+                    obj.CFrame = startCF * CFrame.new((x - 1) * 4, (y - 1) * 4, -(z - 1) * 1)
+                    obj.Anchored = true; obj.CanCollide = true; obj.Color = climbColors[curClimbColorIdx]
+                end
+                obj.Parent = GroupModel
+            end
+        end
+    end
+end)
+
+createSimpleButton(SpawnerFrame, "❌ Delete All Tangga Climb", function() climbStairsFolder:ClearAllChildren() end)
+
+-- =======================================================
+-- TOOLS UTILITY (LANJUTAN)
+-- =======================================================
+local HeaderT = Instance.new("TextLabel", SpawnerFrame); HeaderT.Size = UDim2.new(1,0,0,20); HeaderT.Text = "─── TOOLS UTILITY ───"; HeaderT.TextColor3 = Color3.fromRGB(140,140,140); HeaderT.Font = Enum.Font.SourceSansBold; HeaderT.BackgroundTransparency = 1
+
+createSimpleButton(SpawnerFrame, "Get tools delete block", function()
+    local Tool = Instance.new("Tool") Tool.Name = "Delete Object Tool"; Tool.RequiresHandle = true; createInvisibleHandle(Tool)
+    Tool.Activated:Connect(function() local target = LocalPlayer:GetMouse().Target if target and target.Name ~= "Baseplate" and not target:IsDescendantOf(LocalPlayer.Character) then target:Destroy() end end)
+    giveToolToPlayer(Tool)
+end)
+
+createSimpleButton(SpawnerFrame, "Get tools rotasi", function()
+    local function makeRotTool(name, axis)
+        local t = Instance.new("Tool") t.Name = name; t.RequiresHandle = true; createInvisibleHandle(t)
+        t.Activated:Connect(function() local target = LocalPlayer:GetMouse().Target if target and not target:IsDescendantOf(LocalPlayer.Character) then target.Anchored = true; target.CFrame = target.CFrame * (axis == "Y" and CFrame.Angles(0, math.rad(rotationY == 0 and 45 or rotationY), 0) or axis == "X" and CFrame.Angles(math.rad(rotationX == 0 and 45 or rotationX), 0, 0) or CFrame.Angles(0, 0, math.rad(rotationZ == 0 and 45 or rotationZ))) end end)
+        giveToolToPlayer(t)
+    end
+    makeRotTool("Rotasi Kanan Kiri", "Y") makeRotTool("Rotasi Atas Bawah", "X") makeRotTool("Rotasi Muter", "Z")
+end)
+
+-- ====================================================================
+-- 🔥 POSISI DI BAWAH ROTASI TOOLS - LINK LANGSUNG FULL FITUR BARU 🔥
+-- ====================================================================
+
+-- [1] FITUR POSITION UTILITY (SET JARAK & DRAGGING HP/PC VERSI FIX & 6 TOOLS POSISI)
+createTextBox(SpawnerFrame, "Set Jarak Ubah Posisi", "Angka Bebas", function(val) customUbahJarak = tonumber(val) or 5 end)
+
+createSimpleButton(SpawnerFrame, "Get Dragging block (HP/PC)", function()
+    local DragTool = Instance.new("Tool") DragTool.Name = "Dragging Block Tool"; DragTool.RequiresHandle = true; createInvisibleHandle(DragTool)
+    local targetPart = nil local dragConnection = nil local originalCanCollide = true local mouse = LocalPlayer:GetMouse() local camera = workspace.CurrentCamera
+    
+    -- Jarak default jika jari menunjuk ke langit kosong (tidak mengenai part apapun)
+    local defaultDistance = 18 
+
+    -- FUNGSI HITUNG KOORDINAT AKURAT (ANTI OVERLAP / BENTROK BLOCK LAIN)
+    local function hitungPosisiAmanJari()
+        local mouseX = mouse.X
+        local mouseY = mouse.Y
+        local unitRay = camera:ScreenPointToRay(mouseX, mouseY)
+        
+        -- Setelan Raycast untuk mendeteksi objek apa yang ditunjuk oleh jari kamu
+        local raycastParams = RaycastParams.new()
+        raycastParams.FilterDescendantsInstances = {targetPart, LocalPlayer.Character}
+        raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+        
+        -- Tembakkan garis deteksi sejauh 500 stud ke depan arah jari
+        local raycastResult = workspace:Raycast(unitRay.Origin, unitRay.Direction * 500, raycastParams)
+        
+        if raycastResult and targetPart then
+            -- BACA NORMAL PERMUKAAN: Tempatkan block pas menempel di permukaan luar objek yang ditunjuk jari (bukan di dalamnya!)
+            local hitPosition = raycastResult.Position
+            local hitNormal = raycastResult.Normal -- Arah luar permukaan (Atas, Samping, Bawah)
+            
+            -- Kalkulasi matematika agar titik tengah block pas berada di luar permukaan target
+            local posisiSempurna = hitPosition + (hitNormal * (targetPart.Size / 2))
+            return CFrame.new(posisiSempurna)
+        else
+            -- Jika menunjuk ke langit kosong, pakai jarak default
+            return CFrame.new(unitRay.Origin + (unitRay.Direction * defaultDistance))
+        end
+    end
+
+    local function taruhBlockDiTempat(part, collideState)
+        if dragConnection then dragConnection:Disconnect() dragConnection = nil end
+        mouse.TargetFilter = nil
+        
+        if part and part.Parent then
+            -- AMBIL POSISI SURFACE: Mengunci posisi tepat di atas/luar permukaan yang ditunjuk jari saat dilepas
+            local finalCFrame = hitungPosisiAmanJari()
+            
+            part.Anchored = true
+            part.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+            part.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+            part.CFrame = finalCFrame
+            
+            -- Karena posisinya sudah di luar permukaan block lain, menyalakan CanCollide sekarang 100% aman dan tidak akan amblas!
+            task.wait(0.02)
+            part.CanCollide = collideState
+        end
+    end
+
+    DragTool.Activated:Connect(function()
+        -- 1. Klik kedua kali = TARUH
+        if targetPart then
+            local partToRelease = targetPart local collideState = originalCanCollide
+            targetPart = nil
+            taruhBlockDiTempat(partToRelease, collideState)
+            return
+        end
+        
+        -- 2. Klik pertama kali = SERET
+        local currentTarget = mouse.Target
+        if currentTarget and currentTarget.Name ~= "Baseplate" and not currentTarget:IsDescendantOf(LocalPlayer.Character) then
+            targetPart = currentTarget originalCanCollide = targetPart.CanCollide 
+            targetPart.Anchored = true targetPart.CanCollide = false mouse.TargetFilter = targetPart 
+            
+            dragConnection = RunService.Heartbeat:Connect(function()
+                if targetPart and targetPart.Parent and DragTool.Parent == LocalPlayer.Character then
+                    -- Saat diseret, posisinya langsung nempel rapi mengikuti kontur permukaan block lain
+                    targetPart.CFrame = hitungPosisiAmanJari()
+                else
+                    if dragConnection then dragConnection:Disconnect() dragConnection = nil end mouse.TargetFilter = nil if targetPart then targetPart.CanCollide = originalCanCollide end targetPart = nil
+                end
+            end)
+        end
+    end)
+    
+    -- 3. Lepas Tool Mendadak / Ganti Tool = TARUH DI PERMUKAAN TERAKHIR
+    DragTool.Unequipped:Connect(function()
+        if targetPart then
+            local partToRelease = targetPart local collideState = originalCanCollide
+            targetPart = nil
+            taruhBlockDiTempat(partToRelease, collideState)
+        else
+            if dragConnection then dragConnection:Disconnect() dragConnection = nil end mouse.TargetFilter = nil
+        end
+    end)
+
+    giveToolToPlayer(DragTool)
+end)
+
+createSimpleButton(SpawnerFrame, "Get tools Posisi (6 Alat)", function()
+    local directions = {
+        {Name = "Tools Maju", Vector = Vector3.new(0, 0, -1)}, {Name = "Tools Mundur", Vector = Vector3.new(0, 0, 1)},
+        {Name = "Tools Kiri", Vector = Vector3.new(-1, 0, 0)}, {Name = "Tools Kanan", Vector = Vector3.new(1, 0, 0)},
+        {Name = "Tools Atas", Vector = Vector3.new(0, 1, 0)}, {Name = "Tools Bawah", Vector = Vector3.new(0, -1, 0)}
+    }
+    for _, dir in ipairs(directions) do
+        local PTool = Instance.new("Tool") PTool.Name = dir.Name; PTool.RequiresHandle = true; createInvisibleHandle(PTool)
+        PTool.Activated:Connect(function()
+            local target = LocalPlayer:GetMouse().Target
+            if target and target.Name ~= "Baseplate" and not target:IsDescendantOf(LocalPlayer.Character) then
+                target.Anchored = true target.Position = target.Position + (dir.Vector * customUbahJarak)
+            end
+        end)
+        giveToolToPlayer(PTool)
+    end
+end)
+
+-- [2] FITUR SIZING UTILITY (SET UKURAN BEBAS + GET 3 TOOLS + / GET 3 TOOLS -)
+createTextBox(SpawnerFrame, "Set Ukuran+", "Angka Perbesar Bebas", function(val) customTambahUkuran = tonumber(val) or 2 end)
+
+createSimpleButton(SpawnerFrame, "Get + block (3 Tools)", function()
+    local plusScales = {
+        {Name = "+ Ukuran Panjang", Axis = Vector3.new(1, 0, 0)},
+        {Name = "+ Ukuran Tinggi", Axis = Vector3.new(0, 1, 0)},
+        {Name = "+ Ukuran Lebar", Axis = Vector3.new(0, 0, 1)}
+    }
+    for _, scale in ipairs(plusScales) do
+        local PlusTool = Instance.new("Tool") PlusTool.Name = scale.Name; PlusTool.RequiresHandle = true; createInvisibleHandle(PlusTool)
+        PlusTool.Activated:Connect(function()
+            local target = LocalPlayer:GetMouse().Target
+            if target and target.Name ~= "Baseplate" and not target:IsDescendantOf(LocalPlayer.Character) then
+                target.Anchored = true
+                -- Menambah ukuran part berdasarkan sumbu axis yang dipilih dikali nilai input keyboard
+                target.Size = target.Size + (scale.Axis * customTambahUkuran)
+            end
+        end)
+        giveToolToPlayer(PlusTool)
+    end
+end)
+
+createTextBox(SpawnerFrame, "Set Ukuran-", "Angka Perkecil Bebas", function(val) customKurangUkuran = tonumber(val) or 2 end)
+
+createSimpleButton(SpawnerFrame, "Get - block (3 Tools)", function()
+    local minusScales = {
+        {Name = "- Ukuran Panjang", Axis = Vector3.new(1, 0, 0)},
+        {Name = "- Ukuran Tinggi", Axis = Vector3.new(0, 1, 0)},
+        {Name = "- Ukuran Lebar", Axis = Vector3.new(0, 0, 1)}
+    }
+    for _, scale in ipairs(minusScales) do
+        local MinusTool = Instance.new("Tool") MinusTool.Name = scale.Name; MinusTool.RequiresHandle = true; createInvisibleHandle(MinusTool)
+        MinusTool.Activated:Connect(function()
+            local target = LocalPlayer:GetMouse().Target
+            if target and target.Name ~= "Baseplate" and not target:IsDescendantOf(LocalPlayer.Character) then
+                target.Anchored = true
+                
+                -- Kalkulasi ukuran baru agar ukuran block tidak mengecil minus (dibawah 0.05) yang bisa bikin error Roblox
+                local newSizeX = math.max(0.05, target.Size.X - (scale.Axis.X * customKurangUkuran))
+                local newSizeY = math.max(0.05, target.Size.Y - (scale.Axis.Y * customKurangUkuran))
+                local newSizeZ = math.max(0.05, target.Size.Z - (scale.Axis.Z * customKurangUkuran))
+                
+                target.Size = Vector3.new(newSizeX, newSizeY, newSizeZ)
+            end
+        end)
+        giveToolToPlayer(MinusTool)
+    end
+end)
+
+createSimpleButton(SpawnerFrame, "Get Clone block Tool 👥", function()
+    local CloneTool = Instance.new("Tool")
+    CloneTool.Name = "Clone Block Tool"
+    CloneTool.RequiresHandle = true
+    createInvisibleHandle(CloneTool)
+
+    CloneTool.Activated:Connect(function()
+        local mouse = LocalPlayer:GetMouse()
+        local target = mouse.Target
+        
+        -- Pastikan part yang diklik valid (bukan baseplate utama game dan bukan badan player)
+        if target and target.Name ~= "Baseplate" and not target:IsDescendantOf(LocalPlayer.Character) then
+            -- Proses Duplikasi / Cloning
+            local clonedPart = target:Clone()
+            
+            -- Amankan properti fisikanya agar langsung mengunci kaku di tempat
+            clonedPart.Name = "Cloned_Block_" .. LocalPlayer.Name
+            clonedPart.Anchored = true
+            clonedPart.CanCollide = true
+            
+            -- Taruh sedikit di atas target aslinya atau geser tipis agar kelihatan kalau berhasil ter-clone
+            clonedPart.CFrame = target.CFrame * CFrame.new(0, target.Size.Y, 0)
+            
+            -- Masukkan ke dalam folder block buatan agar bisa dihapus massal lewat tombol "Delete All Block"
+            clonedPart.Parent = blockFolder or workspace
+        end
+    end)
+
+    giveToolToPlayer(CloneTool)
+end)
+
+-- ==========================================
+-- VIII. KATEGORI KEKUATAN & ULTRA GOKU SYSTEM 👑 (ULTIMATE VERSION)
+-- ==========================================
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = game:GetService("Players").LocalPlayer
+
+local KekuatanFrame = createCategory("Kekuatan 👑", 15)
+
+local GokuHeader = Instance.new("TextLabel")
+GokuHeader.Size = UDim2.new(1, 0, 0, 25)
+GokuHeader.Text = "      ─── GODLY SAIYAN ABILITY ───"
+GokuHeader.TextColor3 = Color3.fromRGB(255, 85, 0)
+GokuHeader.Font = Enum.Font.SourceSansBold
+GokuHeader.BackgroundTransparency = 1
+GokuHeader.TextXAlignment = Enum.TextXAlignment.Left
+GokuHeader.Parent = KekuatanFrame
+table.insert(ThemeObjects.SubTexts, GokuHeader)
+
+local GokuConfig = {
+    CurrentForm = "Base",
+    AuraEnabled = false,
+    LaserEnabled = false,
+    AmarahEnabled = false
+}
+
+-- Variabel Global Pengendali Slider
+_G.DeltaPowerLimiter = 100 
+_G.DeltaAmarahMultiplier = 1 
+
+-- ==========================================
+-- DATABASE FORM KESELURUHAN (TOTAL 51 FORM FIXED)
+-- ==========================================
+local FormDatabase = {
+    ["Base"] =                     { AuraColor = Color3.fromRGB(240, 240, 240), LaserColor = Color3.fromRGB(240, 240, 240), BlastRadius = 15,  BlastPower = 80,   LaserThickness = 1.5,  AuraSize = 7 },
+    ["SSJ1"] =                     { AuraColor = Color3.fromRGB(255, 215, 0),   LaserColor = Color3.fromRGB(255, 255, 0),   BlastRadius = 25,  BlastPower = 150,  LaserThickness = 3.0,  AuraSize = 9 },
+    ["SSJ2"] =                     { AuraColor = Color3.fromRGB(255, 235, 0),   LaserColor = Color3.fromRGB(255, 235, 50),  BlastRadius = 35,  BlastPower = 250,  LaserThickness = 4.5,  AuraSize = 10 },
+    ["SSJ3"] =                     { AuraColor = Color3.fromRGB(255, 255, 30),  LaserColor = Color3.fromRGB(255, 215, 0),   BlastRadius = 50,  BlastPower = 400,  LaserThickness = 6.0,  AuraSize = 12 },
+    ["SSJ4"] =                     { AuraColor = Color3.fromRGB(220, 0, 0),     LaserColor = Color3.fromRGB(255, 50, 50),   BlastRadius = 65,  BlastPower = 600,  LaserThickness = 8.0,  AuraSize = 13 },
+    ["SSJ4 Limit Breaker ✨"] =    { AuraColor = Color3.fromRGB(255, 0, 150),   LaserColor = Color3.fromRGB(120, 0, 200),   BlastRadius = 750, BlastPower = 15000, LaserThickness = 70.0, AuraSize = 51 },
+    ["SSJ God"] =                  { AuraColor = Color3.fromRGB(255, 50, 0),    LaserColor = Color3.fromRGB(255, 60, 0),    BlastRadius = 80,  BlastPower = 800,  LaserThickness = 10.0, AuraSize = 15 },
+    ["SSJ Blue"] =                 { AuraColor = Color3.fromRGB(0, 180, 255),   LaserColor = Color3.fromRGB(0, 255, 255),   BlastRadius = 100, BlastPower = 1100, LaserThickness = 13.0, AuraSize = 16 },
+    ["SSJ Rosé 🌹"] =              { AuraColor = Color3.fromRGB(255, 0, 128),   LaserColor = Color3.fromRGB(80, 0, 60),     BlastRadius = 110, BlastPower = 1250, LaserThickness = 14.0, AuraSize = 17 },
+    ["SSJB Kaioken 1"] =           { AuraColor = Color3.fromRGB(255, 0, 120),   LaserColor = Color3.fromRGB(255, 0, 50),    BlastRadius = 120, BlastPower = 1400, LaserThickness = 15.0, AuraSize = 18 },
+    ["SSJB Kaioken 5"] =           { AuraColor = Color3.fromRGB(255, 0, 80),    LaserColor = Color3.fromRGB(255, 0, 0),     BlastRadius = 140, BlastPower = 1700, LaserThickness = 17.0, AuraSize = 19 },
+    ["SSJB Kaioken 10"] =          { AuraColor = Color3.fromRGB(230, 0, 50),    LaserColor = Color3.fromRGB(255, 20, 20),   BlastRadius = 160, BlastPower = 2000, LaserThickness = 19.0, AuraSize = 20 },
+    ["SSJB Kaioken 20"] =          { AuraColor = Color3.fromRGB(200, 0, 30),    LaserColor = Color3.fromRGB(230, 10, 10),   BlastRadius = 180, BlastPower = 2500, LaserThickness = 22.0, AuraSize = 22 },
+    ["SSJB Kaioken 50"] =          { AuraColor = Color3.fromRGB(160, 0, 0),     LaserColor = Color3.fromRGB(200, 0, 0),     BlastRadius = 220, BlastPower = 3200, LaserThickness = 26.0, AuraSize = 25 },
+    ["SSJB Kaioken 100"] =         { AuraColor = Color3.fromRGB(130, 0, 0),     LaserColor = Color3.fromRGB(255, 0, 0),     BlastRadius = 270, BlastPower = 4000, LaserThickness = 32.0, AuraSize = 28 },
+    ["SSJB Kaioken 250"] =         { AuraColor = Color3.fromRGB(100, 0, 10),    LaserColor = Color3.fromRGB(180, 0, 0),     BlastRadius = 350, BlastPower = 5500, LaserThickness = 40.0, AuraSize = 32 },
+    ["SSJB Kaioken 500"] =         { AuraColor = Color3.fromRGB(70, 0, 20),     LaserColor = Color3.fromRGB(130, 0, 0),     BlastRadius = 450, BlastPower = 7500, LaserThickness = 50.0, AuraSize = 38 },
+    ["SSJB Evolution 💙"] =         { AuraColor = Color3.fromRGB(0, 50, 255),   LaserColor = Color3.fromRGB(0, 200, 255),   BlastRadius = 570, BlastPower = 8500, LaserThickness = 55.0, AuraSize = 40 },
+    ["SSJB Kaioken 1000"] =        { AuraColor = Color3.fromRGB(40, 0, 30),     LaserColor = Color3.fromRGB(90, 0, 0),      BlastRadius = 600, BlastPower = 9999, LaserThickness = 65.0, AuraSize = 45 },
+    ["SSJB Evolution Dark 🖤"] =   { AuraColor = Color3.fromRGB(0, 30, 150),   LaserColor = Color3.fromRGB(5, 5, 5),       BlastRadius = 720, BlastPower = 14000, LaserThickness = 120.0,AuraSize = 50 },
+    ["SSJB Universe Tree Power 🌳"] = { AuraColor = Color3.fromRGB(0, 225, 255),LaserColor = Color3.fromRGB(255, 255, 255), BlastRadius = 800, BlastPower = 16500, LaserThickness = 90.0, AuraSize = 52 },
+    ["Perfected SSJ Blue 💎"] =    { AuraColor = Color3.fromRGB(0, 85, 255),   LaserColor = Color3.fromRGB(220, 240, 255), BlastRadius = 810, BlastPower = 17000, LaserThickness = 40.0, AuraSize = 48 },
+    ["UI (Sign)"] =                { AuraColor = Color3.fromRGB(190, 210, 255), LaserColor = Color3.fromRGB(180, 200, 255), BlastRadius = 850, BlastPower = 19000,LaserThickness = 80.0, AuraSize = 55 },
+    ["Ultra Ego 💜"] =             { AuraColor = Color3.fromRGB(140, 0, 255),   LaserColor = Color3.fromRGB(180, 0, 255),   BlastRadius = 950, BlastPower = 25000,LaserThickness = 85.0, AuraSize = 65 },
+    ["MUI"] =                      { AuraColor = Color3.fromRGB(255, 255, 255), LaserColor = Color3.fromRGB(255, 255, 255), BlastRadius = 1200,BlastPower = 32000,LaserThickness = 100.0,AuraSize = 70 },
+    ["SSJ Legendary 🟢"] =         { AuraColor = Color3.fromRGB(50, 255, 50),   LaserColor = Color3.fromRGB(150, 255, 0),   BlastRadius = 1400, BlastPower = 35000, LaserThickness = 110.0, AuraSize = 75 },
+    ["Beast Gohan 🔴"] =           { AuraColor = Color3.fromRGB(200, 200, 255), LaserColor = Color3.fromRGB(255, 50, 50),   BlastRadius = 1800, BlastPower = 40000, LaserThickness = 130.0, AuraSize = 80 },
+    ["Perfected Ultra Ego 🌌😈"] = { AuraColor = Color3.fromRGB(110, 0, 180),  LaserColor = Color3.fromRGB(20, 0, 35),     BlastRadius = 2000, BlastPower = 45000, LaserThickness = 95.0, AuraSize = 85 },
+    ["Perfected UI ⚪"] =          { AuraColor = Color3.fromRGB(200, 220, 255), LaserColor = Color3.fromRGB(255, 255, 255), BlastRadius = 2200, BlastPower = 50000, LaserThickness = 85.0, AuraSize = 86 },
+    ["Perfected Legendary 🟢✨"] =  { AuraColor = Color3.fromRGB(0, 255, 100),   LaserColor = Color3.fromRGB(200, 255, 0),   BlastRadius = 2500, BlastPower = 56000, LaserThickness = 120.0, AuraSize = 90 },
+    ["Perfected Beast 😈🔴"] =      { AuraColor = Color3.fromRGB(15, 0, 255),    LaserColor = Color3.fromRGB(255, 0, 50),    BlastRadius = 2800, BlastPower = 64000, LaserThickness = 140.0, AuraSize = 95 },
+    ["Ultra Ego 2 💢"] =           { AuraColor = Color3.fromRGB(90, 0, 150),    LaserColor = Color3.fromRGB(255, 0, 100),   BlastRadius = 3000, BlastPower = 70000, LaserThickness = 100.0, AuraSize = 98 },
+    ["Ego Limit Breaker 🔥💜"] =   { AuraColor = Color3.fromRGB(120, 0, 200),   LaserColor = Color3.fromRGB(0, 0, 0),       BlastRadius = 3300, BlastPower = 75000, LaserThickness = 150.0, AuraSize = 105 },
+    ["Perfected MUI 🌌🌟"] =       { AuraColor = Color3.fromRGB(255, 255, 255), LaserColor = Color3.fromRGB(0, 190, 255),  BlastRadius = 4000, BlastPower = 85000, LaserThickness = 110.0, AuraSize = 120 },
+    
+    -- [ SET 1 - DI BAWAH PERFECT MUI ]
+    ["Beast 2 🔴 💢"] =            { AuraColor = Color3.fromRGB(130, 0, 200),  LaserColor = Color3.fromRGB(255, 0, 50),    BlastRadius = 4500, BlastPower = 95000, LaserThickness = 120.0, AuraSize = 125 },
+    ["Legendary 2 🟢⚡"] =          { AuraColor = Color3.fromRGB(0, 200, 50),   LaserColor = Color3.fromRGB(180, 255, 0),   BlastRadius = 5000, BlastPower = 110000,LaserThickness = 135.0, AuraSize = 130 },
+    ["Limit Breaker UI ✨⚪"] =     { AuraColor = Color3.fromRGB(240, 240, 255),LaserColor = Color3.fromRGB(0, 150, 255),   BlastRadius = 5500, BlastPower = 130000,LaserThickness = 145.0, AuraSize = 138 },
+    ["True Ego 🌌😈"] =            { AuraColor = Color3.fromRGB(90, 0, 120),    LaserColor = Color3.fromRGB(20, 0, 40),     BlastRadius = 6200, BlastPower = 155000,LaserThickness = 155.0, AuraSize = 145 },
+    ["UI 2 💫⭐"] =                { AuraColor = Color3.fromRGB(200, 230, 255),LaserColor = Color3.fromRGB(255, 255, 255), BlastRadius = 7000, BlastPower = 180000,LaserThickness = 165.0, AuraSize = 150 },
+    ["Limit Breaker Beast 💥👹"] =  { AuraColor = Color3.fromRGB(180, 0, 100),  LaserColor = Color3.fromRGB(0, 0, 0),       BlastRadius = 8000, BlastPower = 210000,LaserThickness = 185.0, AuraSize = 160 },
+    ["True Legendary 👑🟢"] =       { AuraColor = Color3.fromRGB(0, 255, 150),  LaserColor = Color3.fromRGB(230, 255, 0),   BlastRadius = 9200, BlastPower = 260000,LaserThickness = 210.0, AuraSize = 170 },
+    ["Ultimate MUI 👑🌌"] =         { AuraColor = Color3.fromRGB(255, 255, 255),LaserColor = Color3.fromRGB(255, 85, 0),    BlastRadius = 11000,BlastPower = 350000,LaserThickness = 260.0, AuraSize = 190 },
+    
+    -- [ SET 2 - DI BAWAH ULTIMATE MUI ]
+    ["Ultimate Beast 👿💫"] =        { AuraColor = Color3.fromRGB(140, 0, 220),  LaserColor = Color3.fromRGB(255, 0, 80),    BlastRadius = 12000, BlastPower = 400000, LaserThickness = 280.0, AuraSize = 200 },
+    ["Ultimate Legendary 🟢🔥"] =    { AuraColor = Color3.fromRGB(0, 255, 0),    LaserColor = Color3.fromRGB(200, 255, 0),   BlastRadius = 13500, BlastPower = 450000, LaserThickness = 300.0, AuraSize = 210 },
+    ["Ultimate Ego 💜☠️"] =          { AuraColor = Color3.fromRGB(100, 0, 160),  LaserColor = Color3.fromRGB(30, 0, 50),     BlastRadius = 15000, BlastPower = 520000, LaserThickness = 320.0, AuraSize = 220 },
+    ["Ultimate UI 🌌⚪"] =           { AuraColor = Color3.fromRGB(245, 245, 255),LaserColor = Color3.fromRGB(0, 180, 255),   BlastRadius = 17000, BlastPower = 600000, LaserThickness = 350.0, AuraSize = 230 },
+    ["MUI 2 🌟⚡"] =                 { AuraColor = Color3.fromRGB(255, 255, 255),LaserColor = Color3.fromRGB(255, 255, 255), BlastRadius = 20000, BlastPower = 750000, LaserThickness = 400.0, AuraSize = 250 },
+    ["Beast 3 🛑👺"] =              { AuraColor = Color3.fromRGB(110, 0, 180),  LaserColor = Color3.fromRGB(255, 0, 0),     BlastRadius = 22000, BlastPower = 820000, LaserThickness = 420.0, AuraSize = 260 },
+    ["Legendary 3 🟢⚡"] =          { AuraColor = Color3.fromRGB(0, 180, 70),   LaserColor = Color3.fromRGB(220, 255, 50),  BlastRadius = 25000, BlastPower = 900000, LaserThickness = 450.0, AuraSize = 275 },
+    ["Infinite Ego 🔮👁️"] =          { AuraColor = Color3.fromRGB(70, 0, 130),   LaserColor = Color3.fromRGB(0, 0, 0),       BlastRadius = 28000, BlastPower = 999999, LaserThickness = 50.0,  AuraSize = 290 },
+    ["Astral UI 🌠💠"] =            { AuraColor = Color3.fromRGB(180, 220, 255),LaserColor = Color3.fromRGB(255, 255, 255), BlastRadius = 32000, BlastPower = 1200000,LaserThickness = 550.0, AuraSize = 310 },
+    ["Godly Berserk 🔴💀"] =        { AuraColor = Color3.fromRGB(200, 0, 30),    LaserColor = Color3.fromRGB(100, 0, 0),     BlastRadius = 36000, BlastPower = 1450000,LaserThickness = 600.0, AuraSize = 330 },
+    ["Chaos Saiyan 🖤🔥"] =         { AuraColor = Color3.fromRGB(20, 20, 20),    LaserColor = Color3.fromRGB(255, 0, 100),   BlastRadius = 40000, BlastPower = 1700000,LaserThickness = 650.0, AuraSize = 350 },
+    ["Nova Evolution 💥✨"] =       { AuraColor = Color3.fromRGB(255, 100, 0),   LaserColor = Color3.fromRGB(255, 200, 0),   BlastRadius = 45000, BlastPower = 2000000,LaserThickness = 700.0, AuraSize = 380 },
+    ["Void Overlord 🌌🧿"] =        { AuraColor = Color3.fromRGB(10, 0, 30),     LaserColor = Color3.fromRGB(130, 0, 255),   BlastRadius = 50000, BlastPower = 2400000,LaserThickness = 760.0, AuraSize = 400 },
+    ["Super Saiyan Origin 🧬"] =    { AuraColor = Color3.fromRGB(235, 235, 235),LaserColor = Color3.fromRGB(200, 220, 255), BlastRadius = 56000, BlastPower = 2900000,LaserThickness = 820.0, AuraSize = 430 },
+    ["Divine Chrono ⏳⚜️"] =         { AuraColor = Color3.fromRGB(255, 215, 0),   LaserColor = Color3.fromRGB(255, 255, 255), BlastRadius = 62000, BlastPower = 3500000,LaserThickness = 900.0, AuraSize = 460 },
+    ["Abyss Destroyer 🌊🖤"] =      { AuraColor = Color3.fromRGB(0, 20, 80),     LaserColor = Color3.fromRGB(0, 5, 20),      BlastRadius = 70000, BlastPower = 4200000,LaserThickness = 1000.0,AuraSize = 500 },
+    ["Eternity Breaker ♾️💥"] =     { AuraColor = Color3.fromRGB(255, 0, 120),   LaserColor = Color3.fromRGB(255, 255, 255), BlastRadius = 80000, BlastPower = 5000000,LaserThickness = 1100.0,AuraSize = 540 },
+    ["Dimensional Monarch 👑🌀"] =  { AuraColor = Color3.fromRGB(0, 255, 200),   LaserColor = Color3.fromRGB(0, 80, 150),    BlastRadius = 92000, BlastPower = 6000000,LaserThickness = 1250.0,AuraSize = 580 },
+    ["Nexus Saiyan Prime 🌐"] =     { AuraColor = Color3.fromRGB(170, 0, 255),   LaserColor = Color3.fromRGB(255, 215, 0),   BlastRadius = 105000,BlastPower = 7200000,LaserThickness = 1400.0,AuraSize = 630 },
+    ["Singularity 👁️‍🗨️🌪️"] =          { AuraColor = Color3.fromRGB(0, 0, 0),       LaserColor = Color3.fromRGB(255, 255, 255), BlastRadius = 120000,BlastPower = 8500000,LaserThickness = 1600.0,AuraSize = 680 },
+    ["Omniverse God 🌌🔱"] =        { AuraColor = Color3.fromRGB(255, 85, 0),    LaserColor = Color3.fromRGB(255, 255, 255), BlastRadius = 140000,BlastPower = 10000000,LaserThickness = 1800.0,AuraSize = 750 },
+    ["True Zenith 👑✨"] =          { AuraColor = Color3.fromRGB(255, 240, 150),LaserColor = Color3.fromRGB(0, 255, 255),   BlastRadius = 165000,BlastPower = 12500000,LaserThickness = 2000.0,AuraSize = 820 },
+    ["Beyond Infinity ♾️🌟"] =      { AuraColor = Color3.fromRGB(255, 255, 255),LaserColor = Color3.fromRGB(255, 0, 100),   BlastRadius = 190000,BlastPower = 15000000,LaserThickness = 2300.0,AuraSize = 900 },
+    ["Absolute Creator 👑🧬"] =     { AuraColor = Color3.fromRGB(0, 200, 255),   LaserColor = Color3.fromRGB(255, 255, 255), BlastRadius = 220000,BlastPower = 20000000,LaserThickness = 2700.0,AuraSize = 1000 },
+    ["Delta Error 404 ❌⚠️"] =       { AuraColor = Color3.fromRGB(255, 0, 0),     LaserColor = Color3.fromRGB(0, 0, 0),       BlastRadius = 300000,BlastPower = 99999999,LaserThickness = 3500.0,AuraSize = 1200 },
+    
+    -- [ SET 3 - 17 UNSUR SAIYAN DI BAWAH DELTA ERROR ]
+    ["Saiyan Matrix Glitch 👾⚠️"] =   { AuraColor = Color3.fromRGB(255, 0, 150),  LaserColor = Color3.fromRGB(0, 255, 255),   BlastRadius = 350000,BlastPower = 150000000,LaserThickness = 3800.0,AuraSize = 1250 },
+    ["Cyber Saiyan God 🤖⚡"] =       { AuraColor = Color3.fromRGB(0, 255, 200),  LaserColor = Color3.fromRGB(50, 50, 50),    BlastRadius = 400000,BlastPower = 220000000,LaserThickness = 4000.0,AuraSize = 1300 },
+    ["Dimensional Saiyan Prime 🌀"] = { AuraColor = Color3.fromRGB(0, 100, 255),  LaserColor = Color3.fromRGB(255, 255, 255), BlastRadius = 480000,BlastPower = 310000000,LaserThickness = 4300.0,AuraSize = 1380 },
+    ["Quantum Saiyan Void ⚛️🖤"] =    { AuraColor = Color3.fromRGB(130, 0, 255),  LaserColor = Color3.fromRGB(150, 0, 0),     BlastRadius = 550000,BlastPower = 450000000,LaserThickness = 4600.0,AuraSize = 1450 },
+    ["Ancient Saiyan Overlord 👑"] =  { AuraColor = Color3.fromRGB(255, 120, 0),  LaserColor = Color3.fromRGB(255, 255, 100), BlastRadius = 640000,BlastPower = 600000000,LaserThickness = 5000.0,AuraSize = 1550 },
+    ["Ethereal Saiyan Monarch 🕊️"] = { AuraColor = Color3.fromRGB(230, 245, 255),LaserColor = Color3.fromRGB(255, 255, 255), BlastRadius = 750000,BlastPower = 850000000,LaserThickness = 5500.0,AuraSize = 1680 },
+    ["Saiyan Demonic Berserk 🩸💀"] = { AuraColor = Color3.fromRGB(200, 0, 50),   LaserColor = Color3.fromRGB(0, 0, 0),       BlastRadius = 880000,BlastPower = 1200000000,LaserThickness = 6000.0,AuraSize = 1800 },
+    ["Astral Saiyan Destroyer 🌠"] =  { AuraColor = Color3.fromRGB(100, 0, 120),  LaserColor = Color3.fromRGB(255, 0, 100),   BlastRadius = 1000000,BlastPower = 1800000000,LaserThickness = 6800.0,AuraSize = 1950 },
+    ["Infinite Saiyan Breaker ♾️"] =   { AuraColor = Color3.fromRGB(255, 255, 255),LaserColor = Color3.fromRGB(255, 85, 0),    BlastRadius = 1200000,BlastPower = 2500000000,LaserThickness = 7500.0,AuraSize = 2100 },
+    ["Chrono Saiyan Eternal ⏳⚜️"] =   { AuraColor = Color3.fromRGB(255, 215, 0),  LaserColor = Color3.fromRGB(0, 200, 255),   BlastRadius = 1500000,BlastPower = 4000000000,LaserThickness = 8400.0,AuraSize = 2300 },
+    ["Genesis Saiyan Origin 🧬✨"] =   { AuraColor = Color3.fromRGB(0, 255, 150),  LaserColor = Color3.fromRGB(255, 255, 255), BlastRadius = 2000000,BlastPower = 6500000000,LaserThickness = 9500.0,AuraSize = 2500 },
+    ["Multiverse Saiyan Emperor 🌐"] = { AuraColor = Color3.fromRGB(170, 0, 255),  LaserColor = Color3.fromRGB(255, 50, 50),   BlastRadius = 2600000,BlastPower = 9900000000,LaserThickness = 11000.0,AuraSize = 2800 },
+    ["Zenith Saiyan Absolute 🔱🌌"] = { AuraColor = Color3.fromRGB(255, 100, 0),  LaserColor = Color3.fromRGB(255, 255, 255), BlastRadius = 3500000,BlastPower = 15000000000,LaserThickness = 13000.0,AuraSize = 3200 },
+    ["Saiyan Beyond Reality 🌌👁️"] =   { AuraColor = Color3.fromRGB(10, 10, 10),    LaserColor = Color3.fromRGB(0, 255, 200),   BlastRadius = 5000000,BlastPower = 25000000000,LaserThickness = 16000.0,AuraSize = 3800 },
+    ["Delta Saiyan Sovereign ❌👑"] =  { AuraColor = Color3.fromRGB(255, 0, 0),    LaserColor = Color3.fromRGB(0, 0, 0),       BlastRadius = 7500000,BlastPower = 50000000000,LaserThickness = 20000.0,AuraSize = 4500 },
+    ["Omnipotent Saiyan God 👑🔱"] =  { AuraColor = Color3.fromRGB(255, 255, 255),LaserColor = Color3.fromRGB(255, 215, 0),   BlastRadius = 10000000,BlastPower = 99999999999,LaserThickness = 25000.0,AuraSize = 5500 },
+    ["Saiyan Delta Rule Ultima ❌⚡"] = { AuraColor = Color3.fromRGB(130, 0, 0),    LaserColor = Color3.fromRGB(255, 0, 0),     BlastRadius = 15000000,BlastPower = 999999999999,LaserThickness = 35000.0,AuraSize = 7000 }
+}
+
+local FormListOrder = {
+    "Base", "SSJ1", "SSJ2", "SSJ3", "SSJ4", "SSJ4 Limit Breaker ✨", "SSJ God", "SSJ Blue", "SSJ Rosé 🌹",
+    "SSJB Kaioken 1", "SSJB Kaioken 5", "SSJB Kaioken 10", "SSJB Kaioken 20", "SSJB Kaioken 50", 
+    "SSJB Kaioken 100", "SSJB Kaioken 250", "SSJB Kaioken 500", "SSJB Evolution 💙", "SSJB Kaioken 1000",
+    "SSJB Evolution Dark 🖤", "SSJB Universe Tree Power 🌳", "Perfected SSJ Blue 💎", "UI (Sign)", 
+    "Ultra Ego 💜", "MUI", "SSJ Legendary 🟢", "Beast Gohan 🔴", "Perfected Ultra Ego 🌌😈", "Perfected UI ⚪",
+    "Perfected Legendary 🟢✨", "Perfected Beast 😈🔴", "Ultra Ego 2 💢", "Ego Limit Breaker 🔥💜", "Perfected MUI 🌌🌟",
+    "Beast 2 🔴 💢", "Legendary 2 🟢⚡", "Limit Breaker UI ✨⚪", "True Ego 🌌😈", "UI 2 💫⭐", 
+    "Limit Breaker Beast 💥👹", "True Legendary 👑🟢", "Ultimate MUI 👑🌌", "Ultimate Beast 👿💫", 
+    "Ultimate Legendary 🟢🔥", "Ultimate Ego 💜☠️", "Ultimate UI 🌌⚪", "MUI 2 🌟⚡", "Beast 3 🛑👺", 
+    "Legendary 3 🟢⚡", "Infinite Ego 🔮👁️", "Astral UI 🌠💠", "Godly Berserk 🔴💀", "Chaos Saiyan 🖤🔥", 
+    "Nova Evolution 💥✨", "Void Overlord 🌌🧿", "Super Saiyan Origin 🧬", "Divine Chrono ⏳⚜️", 
+    "Abyss Destroyer 🌊🖤", "Eternity Breaker ♾️💥", "Dimensional Monarch 👑🌀", "Nexus Saiyan Prime 🌐", 
+    "Singularity 👁️•️🌪️", "Omniverse God 🌌🔱", "True Zenith 👑✨", "Beyond Infinity ♾️🌟", 
+    "Absolute Creator 👑🧬", "Delta Error 404 ❌⚠️", "Saiyan Matrix Glitch 👾⚠️", "Cyber Saiyan God 🤖⚡", 
+    "Dimensional Saiyan Prime 🌀", "Quantum Saiyan Void ⚛️🖤", "Ancient Saiyan Overlord 👑", 
+    "Ethereal Saiyan Monarch 🕊️", "Saiyan Demonic Berserk 🩸💀", "Astral Saiyan Destroyer 🌠", 
+    "Infinite Saiyan Breaker ♾️", "Chrono Saiyan Eternal ⏳⚜️", "Genesis Saiyan Origin 🧬✨", 
+    "Multiverse Saiyan Emperor 🌐", "Zenith Saiyan Absolute 🔱🌌", "Saiyan Beyond Reality 🌌👁️", 
+    "Delta Saiyan Sovereign ❌👑", "Omnipotent Saiyan God 👑🔱", "Saiyan Delta Rule Ultima ❌⚡"
+}
+
+-- 1. SCROLLING LIST MENU FORM GENERATOR
+local FormContainer = Instance.new("Frame", KekuatanFrame)
+FormContainer.Size = UDim2.new(1, 0, 0, 110)
+FormContainer.BackgroundTransparency = 1
+
+local FormScroll = Instance.new("ScrollingFrame", FormContainer)
+FormScroll.Size = UDim2.new(1, -20, 1, 0)
+FormScroll.Position = UDim2.new(0, 10, 0, 0)
+FormScroll.BackgroundTransparency = 0.6
+FormScroll.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+FormScroll.ScrollBarThickness = 5
+FormScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+table.insert(ThemeObjects.Headers, FormScroll)
+
+local FormListLayout = Instance.new("UIListLayout", FormScroll)
+FormListLayout.Padding = UDim.new(0, 3)
+FormListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    FormScroll.CanvasSize = UDim2.new(0, 0, 0, FormListLayout.AbsoluteContentSize.Y + 8)
+end)
+
+local ActiveFormLabel = Instance.new("TextLabel")
+ActiveFormLabel.Size = UDim2.new(1, 0, 0, 25)
+ActiveFormLabel.Text = "      Form Aktif: Base ⚪"
+ActiveFormLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+ActiveFormLabel.Font = Enum.Font.SourceSansItalic
+ActiveFormLabel.BackgroundTransparency = 1
+ActiveFormLabel.TextXAlignment = Enum.TextXAlignment.Left
+ActiveFormLabel.Parent = KekuatanFrame
+table.insert(ThemeObjects.SubTexts, ActiveFormLabel)
+
+local refreshAuraVisual 
+
+-- 2. UI SLIDER BATAS KEKUATAN ASLI (0% - 100%)
+local SliderRow = Instance.new("Frame")
+SliderRow.Size = UDim2.new(1, 0, 0, 30)
+SliderRow.BackgroundTransparency = 1
+SliderRow.Parent = KekuatanFrame
+
+local SliderTxt = Instance.new("TextLabel")
+SliderTxt.Size = UDim2.new(0, 220, 1, 0)
+SliderTxt.Text = "      Batas Kekuatan Asli: 100%"
+SliderTxt.TextColor3 = Color3.fromRGB(255, 200, 50)
+SliderTxt.Font = Enum.Font.SourceSansBold
+SliderTxt.BackgroundTransparency = 1
+SliderTxt.TextXAlignment = Enum.TextXAlignment.Left
+SliderTxt.Position = UDim2.new(0, 15, 0, 0)
+SliderTxt.Parent = SliderRow
+table.insert(ThemeObjects.SubTexts, SliderTxt)
+
+local P_SliderBar = Instance.new("Frame")
+P_SliderBar.Size = UDim2.new(0, 140, 0, 6)
+P_SliderBar.Position = UDim2.new(1, -155, 0, 12)
+P_SliderBar.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+P_SliderBar.Parent = SliderRow
+
+local P_SliderBtn = Instance.new("TextButton")
+P_SliderBtn.Size = UDim2.new(0, 14, 0, 14)
+P_SliderBtn.Position = UDim2.new(1, -7, 0, -4)
+P_SliderBtn.BackgroundColor3 = Color3.fromRGB(255, 85, 0)
+P_SliderBtn.Text = ""
+P_SliderBtn.Parent = P_SliderBar
+Instance.new("UICorner", P_SliderBtn).CornerRadius = UDim.new(1, 0)
+
+local pSlideDragging = false
+P_SliderBtn.InputBegan:Connect(function(input) 
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then pSlideDragging = true end 
+end)
+UserInputService.InputEnded:Connect(function(input) 
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then pSlideDragging = false end 
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if pSlideDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local percentage = math.clamp((input.Position.X - P_SliderBar.AbsolutePosition.X) / P_SliderBar.AbsoluteSize.X, 0, 1)
+        P_SliderBtn.Position = UDim2.new(percentage, -7, 0, -4)
+        local hasilPersen = math.round(percentage * 100)
+        _G.DeltaPowerLimiter = hasilPersen
+        SliderTxt.Text = "      Batas Kekuatan Asli: " .. hasilPersen .. "%"
+        if GokuConfig.AuraEnabled then refreshAuraVisual() end
+    end
+end)
+
+-- 3. UI SLIDER KELIPATAN AMARAH (1x - 100x)
+local AmarahSliderRow = Instance.new("Frame")
+AmarahSliderRow.Size = UDim2.new(1, 0, 0, 30)
+AmarahSliderRow.BackgroundTransparency = 1
+AmarahSliderRow.Parent = KekuatanFrame
+
+local AmarahSliderTxt = Instance.new("TextLabel")
+AmarahSliderTxt.Size = UDim2.new(0, 220, 1, 0)
+AmarahSliderTxt.Text = "      Kelipatan Amarah: 1x"
+AmarahSliderTxt.TextColor3 = Color3.fromRGB(255, 50, 50)
+AmarahSliderTxt.Font = Enum.Font.SourceSansBold
+AmarahSliderTxt.BackgroundTransparency = 1
+AmarahSliderTxt.TextXAlignment = Enum.TextXAlignment.Left
+AmarahSliderTxt.Position = UDim2.new(0, 15, 0, 0)
+AmarahSliderTxt.Parent = AmarahSliderRow
+table.insert(ThemeObjects.SubTexts, AmarahSliderTxt)
+
+local A_SliderBar = Instance.new("Frame")
+A_SliderBar.Size = UDim2.new(0, 140, 0, 6)
+A_SliderBar.Position = UDim2.new(1, -155, 0, 12)
+A_SliderBar.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+A_SliderBar.Parent = AmarahSliderRow
+
+local A_SliderBtn = Instance.new("TextButton")
+A_SliderBtn.Size = UDim2.new(0, 14, 0, 14)
+A_SliderBtn.Position = UDim2.new(0, -7, 0, -4)
+A_SliderBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+A_SliderBtn.Text = ""
+A_SliderBtn.Parent = A_SliderBar
+Instance.new("UICorner", A_SliderBtn).CornerRadius = UDim.new(1, 0)
+
+local aSlideDragging = false
+A_SliderBtn.InputBegan:Connect(function(input) 
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then aSlideDragging = true end 
+end)
+UserInputService.InputEnded:Connect(function(input) 
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then aSlideDragging = false end 
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if aSlideDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local percentage = math.clamp((input.Position.X - A_SliderBar.AbsolutePosition.X) / A_SliderBar.AbsoluteSize.X, 0, 1)
+        A_SliderBtn.Position = UDim2.new(percentage, -7, 0, -4)
+        local hasilKali = math.round(1 + (percentage * 99))
+        _G.DeltaAmarahMultiplier = hasilKali
+        AmarahSliderTxt.Text = "      Kelipatan Amarah: " .. hasilKali .. "x"
+        if GokuConfig.AuraEnabled then refreshAuraVisual() end
+    end
+end)
+
+-- SYSTEM REFRESH AURA ENGINE
+refreshAuraVisual = function()
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    for _, child in pairs(char:GetChildren()) do if child.Name == "DeltaAuraCorePart" then child:Destroy() end end
+    for _, child in pairs(hrp:GetChildren()) do if child.Name == "DeltaAuraCorePart" or child.Name == "GokuAuraAttachment" then child:Destroy() end end
+
+    if GokuConfig.AuraEnabled then
+        local currentData = FormDatabase[GokuConfig.CurrentForm]
+        local powerMultiplier = _G.DeltaPowerLimiter / 100
+        local amarahMultiplier = (GokuConfig.AmarahEnabled and _G.DeltaAmarahMultiplier) or 1
+        
+        -- Batas Kritis Maks Ukuran Aura agar Layar Roblox Tidak Putus/Crash
+        local finalAuraSize = currentData.AuraSize * powerMultiplier * (1 + (amarahMultiplier * 0.03))
+        finalAuraSize = math.clamp(finalAuraSize, 1, 150) 
+
+        local auraCore = Instance.new("Part")
+        auraCore.Name = "DeltaAuraCorePart"
+        auraCore.Size = Vector3.new(1, 1, 1)
+        auraCore.Transparency = 1
+        auraCore.CanCollide = false
+        auraCore.Massless = true
+        auraCore.CFrame = hrp.CFrame
+        auraCore.Parent = char
+
+        local weld = Instance.new("WeldConstraint")
+        weld.Part0 = hrp
+        weld.Part1 = auraCore
+        weld.Parent = auraCore
+
+        local emitter = Instance.new("ParticleEmitter")
+        emitter.LightEmission = 0.85
+        emitter.LightInfluence = 0
+        emitter.Texture = "rbxassetid://241902296"
+        emitter.Color = ColorSequence.new(currentData.AuraColor)
+        
+        emitter.Size = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, finalAuraSize * 0.4),
+            NumberSequenceKeypoint.new(0.4, finalAuraSize),
+            NumberSequenceKeypoint.new(1, 0)
+        })
+        
+        emitter.Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 0.6),
+            NumberSequenceKeypoint.new(0.2, 0.1),
+            NumberSequenceKeypoint.new(0.7, 0.3),
+            NumberSequenceKeypoint.new(1, 1)
+        })
+        
+        emitter.Lifetime = NumberRange.new(0.5, 1.0)
+        emitter.Rate = math.clamp(140 * (1 + (amarahMultiplier * 0.02)), 10, 300)
+        emitter.Speed = NumberRange.new(6 * amarahMultiplier, 14 * amarahMultiplier)
+        emitter.Acceleration = Vector3.new(0, 12 * amarahMultiplier, 0)
+        emitter.Parent = auraCore
+    end
+end
+
+-- Looping Tombol Form Menu List
+for _, formName in ipairs(FormListOrder) do
+    local currentData = FormDatabase[formName]
+    if currentData then
+        local fBtn = Instance.new("TextButton", FormScroll)
+        fBtn.Size = UDim2.new(1, -8, 0, 26)
+        fBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+        fBtn.Text = "  ⚡ " .. formName
+        fBtn.TextColor3 = Color3.fromRGB(240, 240, 240)
+        fBtn.TextXAlignment = Enum.TextXAlignment.Left
+        fBtn.Font = Enum.Font.SourceSansBold
+        fBtn.TextSize = 13
+        Instance.new("UICorner", fBtn).CornerRadius = UDim.new(0, 4)
+        table.insert(ThemeObjects.Inputs, fBtn)
+
+        fBtn.MouseButton1Click:Connect(function()
+            GokuConfig.CurrentForm = formName
+            ActiveFormLabel.Text = "      Form Aktif: " .. formName .. " 🔥"
+            if GokuConfig.AuraEnabled then refreshAuraVisual() end
+        end)
+    end
+end
+
+-- ACTION INTERFACE TOGGLES
+createToggle(KekuatanFrame, "Aura On/Off", function(state)
+    GokuConfig.AuraEnabled = state
+    refreshAuraVisual()
+end)
+
+createToggle(KekuatanFrame, "Mode Amarah (倍率) On/Off", function(state)
+    GokuConfig.AmarahEnabled = state
+    if GokuConfig.AuraEnabled then refreshAuraVisual() end
+end)
+
+createToggle(KekuatanFrame, "Laser Destroyer On/Off", function(state)
+    GokuConfig.LaserEnabled = state
+end)
+
+LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(1.5)
+    if GokuConfig.AuraEnabled then refreshAuraVisual() end
+end)
+
+-- 4. MEGA LASER DESTROYER SYSTEM WITH SAFE BOUNDS
+local Mouse = LocalPlayer:GetMouse()
+Mouse.Button1Down:Connect(function()
+    if not GokuConfig.LaserEnabled then return end
+    
+    local targetBlock = Mouse.Target
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    
+    if targetBlock and targetBlock:IsA("BasePart") and targetBlock.Name ~= "Baseplate" and not targetBlock:IsDescendantOf(char) and hrp and hum then
+        
+        local currentData = FormDatabase[GokuConfig.CurrentForm]
+        if not currentData then return end
+        
+        local powerMultiplier = _G.DeltaPowerLimiter / 100
+        local amarahMultiplier = (GokuConfig.AmarahEnabled and _G.DeltaAmarahMultiplier) or 1
+        
+        local finalBlastRadius = currentData.BlastRadius * powerMultiplier * amarahMultiplier
+        local finalBlastPower = currentData.BlastPower * powerMultiplier * amarahMultiplier
+        local finalLaserThickness = currentData.LaserThickness * math.clamp(powerMultiplier, 0.1, 1) * amarahMultiplier
+        
+        local originPos = hrp.Position + Vector3.new(0, 1, 0)
+        local targetPos = Mouse.Hit.p
+
+        if (targetPos - hrp.Position).Magnitude < 6 then return end
+
+        -- A. BEAM VISUAL
+        local distance = (targetPos - originPos).Magnitude
+        local laserPart = Instance.new("Part", workspace)
+        laserPart.Name = "Goku_Mega_Laser"
+        laserPart.Anchored = true
+        laserPart.CanCollide = false
+        laserPart.Color = currentData.LaserColor
+        laserPart.Material = Enum.Material.Neon
+        laserPart.Size = Vector3.new(math.clamp(finalLaserThickness, 1, 500), math.clamp(finalLaserThickness, 1, 500), distance)
+        laserPart.CFrame = CFrame.new(originPos, targetPos) * CFrame.new(0, 0, -distance/2)
+        game:GetService("Debris"):AddItem(laserPart, 0.25)
+
+        -- B. BASE EXPLOSION
+        local explosion = Instance.new("Explosion")
+        explosion.Position = targetPos
+        explosion.BlastRadius = math.clamp(finalBlastRadius, 1, 500) -- Batas aman Roblox Engine
+        explosion.BlastPressure = finalBlastPower * 50
+        explosion.ExplosionType = Enum.ExplosionType.NoCraters
+        explosion.Hit:Connect(function(partHit)
+            if partHit and partHit:IsDescendantOf(char) then hum.Health = hum.Health end
+        end)
+        explosion.Parent = workspace
+
+        -- C. DESTROY TARGET INSTANTLY
+        targetBlock:Destroy()
+
+        -- D. TITANIC SPLASH ERASURE (SAFE MATRIX FOR EXTREME VALUES)
+        local regionSize = math.clamp(finalBlastRadius, 5, 250) -- Dikecilkan max-nya agar tidak bikin game freeze
+        local region = Region3.new(
+            targetPos - Vector3.new(regionSize/2, regionSize/2, regionSize/2), 
+            targetPos + Vector3.new(regionSize/2, regionSize/2, regionSize/2)
+        )
+        
+        local partsInRadius = workspace:FindPartsInRegion3(region, char, 200)
+        for _, part in pairs(partsInRadius) do
+            if part:IsA("BasePart") and part.Name ~= "Baseplate" and not part:IsDescendantOf(char) then
+                part:Destroy()
+            end
+        end
+    end
+end)
+
+-- ====================================================================
+-- IX. KATEGORI FINAL: TEMA MAP & VISUAL 🗺️ (DELTA EXECUTOR OPTIMIZED)
+-- ====================================================================
+local TemaMapFrame = createCategory("Tema Map 🗺️", 17)
+
+local Lighting = game:GetService("Lighting")
+local Debris = game:GetService("Debris")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+-- Sinkronisasi State Global Executor (_G) agar tidak duplikat/menumpuk saat re-execute
+if _G.DeltaVisualConnections then
+    for name, conn in pairs(_G.DeltaVisualConnections) do if conn then conn:Disconnect() end end
+end
+_G.DeltaVisualConnections = {}
+
+if _G.DeltaVisualLoops then
+    for name, loop in pairs(_G.DeltaVisualLoops) do if loop then task.cancel(loop) end end
+end
+_G.DeltaVisualLoops = {}
+
+local soundCache = _G.DeltaSoundCache or {}
+_G.DeltaSoundCache = soundCache
+
+-- Folder Penampung Aset
+local function getOrCreateFolder(name)
+    local f = workspace:FindFirstChild(name)
+    if not f then f = Instance.new("Folder", workspace) f.Name = name end
+    return f
+end
+local snowLayerFolder = getOrCreateFolder("Delta_Snow_Layers")
+local desertFolder = getOrCreateFolder("Delta_Desert_System")
+local tornadoFolder = getOrCreateFolder("Delta_Tornado_System")
+local autumnFolder = getOrCreateFolder("Delta_Autumn_System")
+local rainFolder = getOrCreateFolder("Delta_Rain_System")
+local smokeFolder = getOrCreateFolder("Delta_Smoke_System")
+
+-- UTILITY: SISTEM MANAGEMENT SUARA
+local function playThemeSound(soundId, volume, name)
+    if soundCache[name] then soundCache[name]:Destroy() soundCache[name] = nil end
+    local sound = Instance.new("Sound")
+    sound.SoundId = "rbxassetid://" .. tostring(soundId)
+    sound.Volume = 0
+    sound.Looped = true
+    sound.Name = "DeltaSound_" .. name
+    sound.Parent = Lighting
+    sound:Play()
+    TweenService:Create(sound, TweenInfo.new(1.5), {Volume = volume}):Play()
+    soundCache[name] = sound
+end
+
+local function stopThemeSound(name)
+    local sound = soundCache[name]
+    if sound then
+        local tween = TweenService:Create(sound, TweenInfo.new(1.5), {Volume = 0})
+        tween:Play()
+        tween.Completed:Connect(function()
+            if sound then sound:Destroy() if soundCache[name] == sound then soundCache[name] = nil end end
+        end)
+    end
+end
+
+-- UTILITY: ATMOSPHERE CONTROL
+local function getAtmosphere()
+    local atm = Lighting:FindFirstChildOfClass("Atmosphere")
+    if not atm then atm = Instance.new("Atmosphere", Lighting) end
+    return atm
+end
+
+-- UTILITY: CLEAN SKYBOX CHANGES
+local function resetSkybox()
+    local oldSky = Lighting:FindFirstChild("DeltaCustomSky")
+    if oldSky then oldSky:Destroy() end
+end
+
+local function setCustomSkybox(skyId, name)
+    resetSkybox()
+    local sky = Instance.new("Sky")
+    sky.Name = "DeltaCustomSky"
+    sky.SkyboxBk = "rbxassetid://" .. skyId
+    sky.SkyboxDn = "rbxassetid://" .. skyId
+    sky.SkyboxFt = "rbxassetid://" .. skyId
+    sky.SkyboxLf = "rbxassetid://" .. skyId
+    sky.SkyboxRt = "rbxassetid://" .. skyId
+    sky.SkyboxUp = "rbxassetid://" .. skyId
+    sky.CelestialBodiesShown = true
+    sky.Parent = Lighting
+end
+
+-- FUNGSI VALIDASI BENTUK PART (ANTI BULAT / CYLINDER)
+local function isPartValidForLayer(part)
+    if not part:IsA("BasePart") or not part.CanCollide or part.Size.X < 1.5 or part.Size.Z < 1.5 then
+        return false
+    end
+    if part:IsA("Part") and (part.Shape == Enum.PartType.Ball or part.Shape == Enum.PartType.Cylinder) then
+        return false
+    end
+    if part.CFrame.UpVector.Y <= 0.85 then
+        return false
+    end
+    return true
+end
+
+-- 1. GENERATOR LAPISAN SALJU (ANTI BULAT)
+local function SetSaljuDiAtasPart(enable)
+    if enable then
+        if _G.DeltaVisualLoops["SaljuLayer"] then return end
+        _G.DeltaVisualLoops["SaljuLayer"] = task.spawn(function()
+            while true do
+                local char = LocalPlayer.Character
+                local root = char and char:FindFirstChild("HumanoidRootPart")
+                if root then
+                    local parts = workspace:GetPartBoundsInBox(CFrame.new(root.Position), Vector3.new(180, 50, 180), OverlapParams.new())
+                    for _, part in pairs(parts) do
+                        if part.Name == "DeltaSnowTop" or part.Name == "DeltaWaterTop" or part.Name == "DeltaSandTop" or part:IsDescendantOf(char) or part.Transparency > 0.5 then 
+                            continue 
+                        end
+                        if isPartValidForLayer(part) then
+                            if not part:FindFirstChild("DeltaSnowTop") then
+                                local snowTop = Instance.new("Part")
+                                snowTop.Name = "DeltaSnowTop"
+                                snowTop.Size = Vector3.new(part.Size.X + 0.02, 0.15, part.Size.Z + 0.02)
+                                snowTop.Color = Color3.fromRGB(255, 255, 255)
+                                snowTop.Material = Enum.Material.Sand
+                                snowTop.Anchored, snowTop.CanCollide = true, true
+                                snowTop.CFrame = part.CFrame * CFrame.new(0, (part.Size.Y / 2) + (snowTop.Size.Y / 2), 0)
+                                snowTop.Parent = snowLayerFolder
+                                
+                                task.spawn(function()
+                                    while part and part.Parent do task.wait(2) end
+                                    if snowTop then snowTop:Destroy() end
+                                end)
+                            end
+                        end
+                    end
+                end
+                task.wait(1.5)
+            end
+        end)
+    else
+        if _G.DeltaVisualLoops["SaljuLayer"] then task.cancel(_G.DeltaVisualLoops["SaljuLayer"]) _G.DeltaVisualLoops["SaljuLayer"] = nil end
+        snowLayerFolder:ClearAllChildren()
+    end
+end
+
+-- 2. GENERATOR LAPISAN AIR / GENANGAN HUJAN (ANTI BULAT)
+local function SetGenanganAir(enable)
+    if enable then
+        if _G.DeltaVisualLoops["AirLayer"] then return end
+        _G.DeltaVisualLoops["AirLayer"] = task.spawn(function()
+            while true do
+                local char = LocalPlayer.Character
+                local root = char and char:FindFirstChild("HumanoidRootPart")
+                if root then
+                    local parts = workspace:GetPartBoundsInBox(CFrame.new(root.Position), Vector3.new(180, 50, 180), OverlapParams.new())
+                    for _, part in pairs(parts) do
+                        if part.Name == "DeltaSnowTop" or part.Name == "DeltaWaterTop" or part.Name == "DeltaSandTop" or part:IsDescendantOf(char) or part.Transparency > 0.5 then 
+                            continue 
+                        end
+                        if isPartValidForLayer(part) then
+                            if not part:FindFirstChild("DeltaWaterTop") then
+                                local waterTop = Instance.new("Part")
+                                waterTop.Name = "DeltaWaterTop"
+                                waterTop.Size = Vector3.new(part.Size.X + 0.02, 0.05, part.Size.Z + 0.02)
+                                waterTop.Color = Color3.fromRGB(45, 65, 85)
+                                waterTop.Material = Enum.Material.Glass
+                                waterTop.Transparency = 0.45
+                                waterTop.Anchored, waterTop.CanCollide = true, false
+                                waterTop.CFrame = part.CFrame * CFrame.new(0, (part.Size.Y / 2) + (waterTop.Size.Y / 2), 0)
+                                waterTop.Parent = rainFolder
+                                
+                                task.spawn(function()
+                                    while part and part.Parent do task.wait(2) end
+                                    if waterTop then waterTop:Destroy() end
+                                end)
+                            end
+                        end
+                    end
+                end
+                task.wait(1.5)
+            end
+        end)
+    else
+        if _G.DeltaVisualLoops["AirLayer"] then task.cancel(_G.DeltaVisualLoops["AirLayer"]) _G.DeltaVisualLoops["AirLayer"] = nil end
+        rainFolder:ClearAllChildren()
+    end
+end
+
+-- 2B. GENERATOR LAPISAN PASIR PADANG PASIR (ANTI BULAT)
+local function SetPadangPasirMap(enable)
+    local atm = getAtmosphere()
+    if enable then
+        if _G.DeltaVisualLoops["PasirLayer"] then return end
+        playThemeSound(9114221703, 0.7, "Gurun")
+        TweenService:Create(Lighting, TweenInfo.new(2.5), {ClockTime = 12, OutdoorAmbient = Color3.fromRGB(215, 170, 120), FogColor = Color3.fromRGB(225, 185, 140), FogEnd = 250, Brightness = 3.0}):Play()
+        TweenService:Create(atm, TweenInfo.new(2.5), {Density = 0.4, Color = Color3.fromRGB(225, 185, 140), Haze = 2.5}):Play()
+
+        _G.DeltaVisualLoops["PasirLayer"] = task.spawn(function()
+            while true do
+                local char = LocalPlayer.Character
+                local root = char and char:FindFirstChild("HumanoidRootPart")
+                if root then
+                    local parts = workspace:GetPartBoundsInBox(CFrame.new(root.Position), Vector3.new(180, 50, 180), OverlapParams.new())
+                    for _, part in pairs(parts) do
+                        if part.Name == "DeltaSnowTop" or part.Name == "DeltaWaterTop" or part.Name == "DeltaSandTop" or part:IsDescendantOf(char) or part.Transparency > 0.5 then 
+                            continue 
+                        end
+                        if isPartValidForLayer(part) then
+                            if not part:FindFirstChild("DeltaSandTop") then
+                                local sandTop = Instance.new("Part")
+                                sandTop.Name = "DeltaSandTop"
+                                sandTop.Size = Vector3.new(part.Size.X + 0.02, 0.15, part.Size.Z + 0.02)
+                                sandTop.Color = Color3.fromRGB(220, 180, 135) 
+                                sandTop.Material = Enum.Material.Sand
+                                sandTop.Anchored, sandTop.CanCollide = true, true
+                                sandTop.CFrame = part.CFrame * CFrame.new(0, (part.Size.Y / 2) + (sandTop.Size.Y / 2), 0)
+                                sandTop.Parent = desertFolder
+                                
+                                task.spawn(function()
+                                    while part and part.Parent do task.wait(2) end
+                                    if sandTop then sandTop:Destroy() end
+                                end)
+                            end
+                        end
+                    end
+                end
+                task.wait(1.5)
+            end
+        end)
+    else
+        if _G.DeltaVisualLoops["PasirLayer"] then task.cancel(_G.DeltaVisualLoops["PasirLayer"]) _G.DeltaVisualLoops["PasirLayer"] = nil end
+        desertFolder:ClearAllChildren()
+        stopThemeSound("Gurun")
+    end
+end
+
+-- 2C. SYSTEM PENERANGAN API DINAMIS LENTERA
+local function SetPeneranganApi(enable)
+    if enable then
+        local function attachLight(char)
+            local root = char:WaitForChild("HumanoidRootPart", 5)
+            if root then
+                if _G.bodyFireLight then _G.bodyFireLight:Destroy() end
+                _G.bodyFireLight = Instance.new("PointLight")
+                _G.bodyFireLight.Name = "DeltaFireLantern"
+                _G.bodyFireLight.Color = Color3.fromRGB(255, 135, 35)
+                _G.bodyFireLight.Range = 35 
+                _G.bodyFireLight.Brightness = 3.5 
+                _G.bodyFireLight.Shadows = true 
+                _G.bodyFireLight.Parent = root
+            end
+        end
+        local char = LocalPlayer.Character
+        if char then attachLight(char) end
+        _G.CharacterAddedConnection = LocalPlayer.CharacterAdded:Connect(function(newChar)
+            task.wait(0.5)
+            attachLight(newChar)
+        end)
+    else
+        if _G.bodyFireLight then _G.bodyFireLight:Destroy() _G.bodyFireLight = nil end
+        if _G.CharacterAddedConnection then _G.CharacterAddedConnection:Disconnect() _G.CharacterAddedConnection = nil end
+    end
+end
+
+-- 3. EFEK HUJAN DERAS
+local function SetEfekHujan(enable)
+    if enable then
+        if _G.DeltaVisualConnections["Hujan"] then return end
+        playThemeSound(9059737151, 1.2, "Hujan")
+        TweenService:Create(Lighting, TweenInfo.new(3), {ClockTime = 16.5, OutdoorAmbient = Color3.fromRGB(35,38,42), FogColor = Color3.fromRGB(40,42,45), FogEnd = 350}):Play()
+        
+        _G.DeltaVisualConnections["Hujan"] = RunService.RenderStepped:Connect(function()
+            local cam = workspace.CurrentCamera
+            if cam then
+                for i = 1, 4 do 
+                    local p = Instance.new("Part")
+                    p.Size = Vector3.new(0.08, math.random(5, 9), 0.08)
+                    p.Color = Color3.fromRGB(190, 215, 255)
+                    p.Material = Enum.Material.Glass; p.Transparency = 0.55; p.CanCollide, p.Anchored = false, true
+                    p.Position = cam.CFrame.Position + Vector3.new(math.random(-75, 75), math.random(30, 50), math.random(-75, 75))
+                    p.Parent = rainFolder
+                    local durasi = math.random(4, 9)/10
+                    TweenService:Create(p, TweenInfo.new(durasi, Enum.EasingStyle.Linear), {Position = p.Position - Vector3.new(6, 60, 0), Transparency = 1}):Play()
+                    Debris:AddItem(p, durasi)
+                end
+            end
+        end)
+    else
+        if _G.DeltaVisualConnections["Hujan"] then _G.DeltaVisualConnections["Hujan"]:Disconnect() _G.DeltaVisualConnections["Hujan"] = nil end
+        stopThemeSound("Hujan")
+    end
+end
+
+-- 4. KABUT PAGI HARI REALISTIS
+local function SetKabutPagi(enable)
+    local atm = getAtmosphere()
+    if enable then
+        playThemeSound(9114223126, 0.4, "Pagi")
+        TweenService:Create(Lighting, TweenInfo.new(2.5), {ClockTime = 5.8, OutdoorAmbient = Color3.fromRGB(140, 160, 185), FogColor = Color3.fromRGB(210, 225, 235), FogEnd = 120, Brightness = 1.3}):Play()
+        TweenService:Create(atm, TweenInfo.new(2.5), {Density = 0.65, Color = Color3.fromRGB(210, 225, 235), Haze = 4}):Play()
+    else
+        stopThemeSound("Pagi")
+        TweenService:Create(Lighting, TweenInfo.new(2), {FogEnd = 100000}):Play()
+        TweenService:Create(atm, TweenInfo.new(2), {Density = 0, Haze = 0}):Play()
+    end
+end
+
+-- 5. KABUT ASAP POLUSI
+local function SetAsapPolusi(enable)
+    local atm = getAtmosphere()
+    if enable then
+        if _G.DeltaVisualConnections["Polusi"] then return end
+        playThemeSound(9114221703, 0.8, "Polusi")
+        TweenService:Create(Lighting, TweenInfo.new(2), {OutdoorAmbient = Color3.fromRGB(75, 72, 68), FogColor = Color3.fromRGB(90, 85, 80), FogEnd = 200, Brightness = 1.0}):Play()
+        TweenService:Create(atm, TweenInfo.new(2), {Density = 0.45, Color = Color3.fromRGB(90, 85, 80), Haze = 3}):Play()
+
+        _G.DeltaVisualConnections["Polusi"] = RunService.RenderStepped:Connect(function()
+            local cam = workspace.CurrentCamera
+            if cam then
+                for i = 1, 1 do 
+                    local p = Instance.new("Part")
+                    local size = math.random(7, 16)
+                    p.Size = Vector3.new(size, size, size)
+                    p.Shape = Enum.PartType.Ball; p.Color = Color3.fromRGB(110, 105, 100); p.Material = Enum.Material.Glass; p.Transparency = 0.88; p.CanCollide, p.Anchored = false, true
+                    p.Position = cam.CFrame.Position + Vector3.new(math.random(-80, 80), math.random(-12, 22), math.random(-80, 80))
+                    p.Parent = smokeFolder
+                    local durasi = math.random(35, 65)/10
+                    TweenService:Create(p, TweenInfo.new(durasi, Enum.EasingStyle.Linear), {Position = p.Position + Vector3.new(math.random(15, 30), math.random(3, 8), math.random(-4, 4)), Size = p.Size * 1.3, Transparency = 1}):Play()
+                    Debris:AddItem(p, durasi)
+                end
+            end
+        end)
+    else
+        if _G.DeltaVisualConnections["Polusi"] then _G.DeltaVisualConnections["Polusi"]:Disconnect() _G.DeltaVisualConnections["Polusi"] = nil end
+        smokeFolder:ClearAllChildren()
+        stopThemeSound("Polusi")
+        TweenService:Create(Lighting, TweenInfo.new(2), {FogEnd = 100000}):Play()
+        TweenService:Create(atm, TweenInfo.new(2), {Density = 0, Haze = 0}):Play()
+    end
+end
+
+-- 6. BADAI SALJU EXTREME & EFEK LAYAR BEKU
+local function SetHeavyStorm(enable)
+    if enable then
+        if _G.DeltaVisualConnections["HeavyStorm"] then return end
+        playThemeSound(9114225010, 1.5, "BadaiSalju")
+
+        local deltaGui = PlayerGui:FindFirstChild("DeltaCustomScreenEffects") or Instance.new("ScreenGui", PlayerGui)
+        deltaGui.Name = "DeltaCustomScreenEffects"
+        
+        local frostFrame = Instance.new("Frame", deltaGui)
+        frostFrame.Name = "FrostEffectFrame"
+        frostFrame.Size = UDim2.new(1, 0, 1, 0)
+        frostFrame.BackgroundColor3 = Color3.fromRGB(175, 220, 255)
+        frostFrame.BackgroundTransparency = 0.75
+        frostFrame.BorderSizePixel = 0
+        
+        local uiStroke = Instance.new("UIStroke", frostFrame)
+        uiStroke.Color = Color3.fromRGB(255, 255, 255)
+        uiStroke.Thickness = 6
+
+        _G.DeltaVisualLoops["FrostTween"] = task.spawn(function()
+            while true do
+                TweenService:Create(frostFrame, TweenInfo.new(1.5), {BackgroundTransparency = 0.6}):Play()
+                task.wait(1.5)
+                TweenService:Create(frostFrame, TweenInfo.new(1.5), {BackgroundTransparency = 0.78}):Play()
+                task.wait(1.5)
+            end
+        end)
+
+        _G.DeltaVisualConnections["HeavyStorm"] = RunService.RenderStepped:Connect(function()
+            local cam = workspace.CurrentCamera
+            if cam then
+                for i = 1, 5 do 
+                    local p = Instance.new("Part")
+                    p.Size = Vector3.new(math.random(4, 9)/10, math.random(4, 9)/10, math.random(4, 9)/10)
+                    p.Shape = Enum.PartType.Ball; p.Color = Color3.fromRGB(250, 250, 255); p.Material = Enum.Material.Neon; p.CanCollide, p.Anchored = false, true
+                    p.Position = cam.CFrame.Position + Vector3.new(math.random(-110, 110), math.random(20, 45), math.random(-110, 110))
+                    p.Parent = snowLayerFolder
+                    local durasi = math.random(8, 18)/10
+                    TweenService:Create(p, TweenInfo.new(durasi, Enum.EasingStyle.Linear), {Position = p.Position - Vector3.new(40 + math.random(-5, 5), 35, math.random(-5, 5)), Transparency = 1}):Play()
+                    Debris:AddItem(p, durasi)
+                end
+            end
+        end)
+    else
+        if _G.DeltaVisualConnections["HeavyStorm"] then _G.DeltaVisualConnections["HeavyStorm"]:Disconnect() _G.DeltaVisualConnections["HeavyStorm"] = nil end
+        if _G.DeltaVisualLoops["FrostTween"] then task.cancel(_G.DeltaVisualLoops["FrostTween"]) _G.DeltaVisualLoops["FrostTween"] = nil end
+        local deltaGui = PlayerGui:FindFirstChild("DeltaCustomScreenEffects")
+        if deltaGui then local ff = deltaGui:FindFirstChild("FrostEffectFrame") if ff then ff:Destroy() end end
+        stopThemeSound("BadaiSalju")
+    end
+end
+
+-- 7. EFEK SALJU BIASA
+local function SetEfekSalju(enable)
+    if enable then
+        if _G.DeltaVisualConnections["SaljuBiasa"] then return end
+        playThemeSound(9114225010, 0.4, "SaljuBiasa")
+        _G.DeltaVisualConnections["SaljuBiasa"] = RunService.RenderStepped:Connect(function()
+            local cam = workspace.CurrentCamera
+            if cam then
+                for i = 1, 2 do 
+                    local p = Instance.new("Part")
+                    p.Size = Vector3.new(0.3, 0.3, 0.3)
+                    p.Shape = Enum.PartType.Ball; p.Color = Color3.fromRGB(255, 255, 255); p.Material = Enum.Material.Neon; p.CanCollide, p.Anchored = false, true
+                    p.Position = cam.CFrame.Position + Vector3.new(math.random(-60, 60), math.random(20, 35), math.random(-60, 60))
+                    p.Parent = snowLayerFolder
+                    local durasi = math.random(15, 30)/10
+                    TweenService:Create(p, TweenInfo.new(durasi, Enum.EasingStyle.Linear), {Position = p.Position - Vector3.new(math.random(-4, 4), 40, math.random(-4, 4)), Transparency = 1}):Play()
+                    Debris:AddItem(p, durasi)
+                end
+            end
+        end)
+    else 
+        if _G.DeltaVisualConnections["SaljuBiasa"] then _G.DeltaVisualConnections["SaljuBiasa"]:Disconnect() _G.DeltaVisualConnections["SaljuBiasa"] = nil end 
+        stopThemeSound("SaljuBiasa") 
+    end
+end
+
+-- 8. DAUN GUGUR KEMARAU
+local function SetDaunGugur(enable)
+    if enable then
+        if _G.DeltaVisualConnections["DaunGugur"] then return end
+        playThemeSound(9113575388, 0.6, "AnginGugur")
+        _G.DeltaVisualConnections["DaunGugur"] = RunService.RenderStepped:Connect(function()
+            local cam = workspace.CurrentCamera
+            if cam then
+                for i = 1, 2 do 
+                    local p = Instance.new("Part")
+                    p.Size = Vector3.new(math.random(6, 12)/10, 0.1, math.random(4, 9)/10) 
+                    local warnaDaun = {Color3.fromRGB(190, 85, 25), Color3.fromRGB(140, 70, 15), Color3.fromRGB(220, 140, 45)}
+                    p.Color = warnaDaun[math.random(1, #warnaDaun)]; p.Material = Enum.Material.Wood; p.CanCollide, p.Anchored = false, true
+                    p.Position = cam.CFrame.Position + Vector3.new(math.random(-90, 90), math.random(25, 45), math.random(-90, 90))
+                    p.Rotation = Vector3.new(math.random(0,360), math.random(0,360), math.random(0,360))
+                    p.Parent = autumnFolder
+                    local durasi = math.random(20, 40)/10
+                    TweenService:Create(p, TweenInfo.new(durasi, Enum.EasingStyle.Linear), {Position = p.Position - Vector3.new(20 + math.random(-10, 10), 40, math.random(-10, 10)), Rotation = p.Rotation + Vector3.new(math.random(180, 500), math.random(180, 500), math.random(90, 360)), Transparency = 1}):Play()
+                    Debris:AddItem(p, durasi)
+                end
+            end
+        end)
+    else 
+        if _G.DeltaVisualConnections["DaunGugur"] then _G.DeltaVisualConnections["DaunGugur"]:Disconnect() _G.DeltaVisualConnections["DaunGugur"] = nil end 
+        autumnFolder:ClearAllChildren() 
+        stopThemeSound("AnginGugur") 
+    end
+end
+
+-- 9. TORNADO LUAR MAP
+local function SetTornadoSystem(enable)
+    if enable then
+        if _G.DeltaVisualConnections["Tornado"] then return end
+        playThemeSound(9114222019, 1.4, "Tornado")
+        local char = LocalPlayer.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        local spawnPos = root and (root.Position + (root.CFrame.LookVector * 190) + Vector3.new(0, 20, 0)) or Vector3.new(0,55,0)
+        
+        local tornadoModel = Instance.new("Model", tornadoFolder); tornadoModel.Name = "DeltaTornado"
+        local Core = Instance.new("Part", tornadoModel)
+        Core.Size = Vector3.new(2, 90, 2); Core.Anchored, Core.Transparency, Core.CanCollide = true, 1, false; Core.Position = Vector3.new(spawnPos.X, spawnPos.Y + 35, spawnPos.Z)
+        
+        local sudutPutar = 0
+        _G.DeltaVisualConnections["Tornado"] = RunService.Heartbeat:Connect(function()
+            if not Core or not Core.Parent then return end
+            sudutPutar = sudutPutar + 8
+            if math.random(1, 3) == 1 then
+                local p = Instance.new("Part")
+                local tinggiAcak = math.random(-45, 45)
+                local radius = 10 + ((tinggiAcak + 45) * 0.45) 
+                p.Size = Vector3.new(math.random(5,11), math.random(5,11), math.random(5,11))
+                p.Color = Color3.fromRGB(75, 75, 85); p.Material = Enum.Material.Glass; p.Transparency = 0.55; p.Anchored, p.CanCollide = true, false; p.Parent = tornadoModel
+                local hitungSudut = math.rad(sudutPutar + (tinggiAcak * 8))
+                p.Position = Vector3.new(Core.Position.X + math.sin(hitungSudut) * radius, Core.Position.Y + tinggiAcak, Core.Position.Z + math.cos(hitungSudut) * radius)
+                TweenService:Create(p, TweenInfo.new(1.3), {Position = p.Position + Vector3.new(math.random(-5,5), 18, math.random(-5,5)), Transparency = 1, Size = p.Size * 1.4}):Play()
+                Debris:AddItem(p, 1.3)
+            end
+        end)
+    else 
+        if _G.DeltaVisualConnections["Tornado"] then _G.DeltaVisualConnections["Tornado"]:Disconnect() _G.DeltaVisualConnections["Tornado"] = nil end 
+        tornadoFolder:ClearAllChildren() 
+        stopThemeSound("Tornado") 
+    end
+end
+
+-- 10. GRAVITASI BULAN
+local function SetMoonGravity(enable)
+    if enable then
+        playThemeSound(9114170366, 0.7, "MoonSpace")
+        workspace.Gravity = 35
+    else
+        stopThemeSound("MoonSpace")
+        workspace.Gravity = 196.2
+    end
+end
+
+-- 11. EFEK LANGIT GALAXY & BLACK HOLE
+local function SetEfekGalaxy(enable)
+    if enable then
+        playThemeSound(9114170366, 0.8, "Galaxy")
+        Lighting.ClockTime = 0; Lighting.OutdoorAmbient = Color3.fromRGB(10, 10, 30)
+        local bh = workspace:FindFirstChild("DeltaBlackHole")
+        if not bh then
+            local blackHolePart = Instance.new("Part")
+            blackHolePart.Name = "DeltaBlackHole"
+            blackHolePart.Size = Vector3.new(60, 60, 60); blackHolePart.Shape = Enum.PartType.Ball; blackHolePart.Color = Color3.fromRGB(0, 0, 0); blackHolePart.Material = Enum.Material.Neon; blackHolePart.Anchored, blackHolePart.CanCollide = true, false; blackHolePart.Position = Vector3.new(0, 400, 0)
+            local attach = Instance.new("Attachment", blackHolePart)
+            local emiter = Instance.new("ParticleEmitter", attach)
+            emiter.Texture = "rbxassetid://241555541"; emiter.Size = NumberSequence.new(15, 35); emiter.Speed = NumberRange.new(10, 25); emiter.Lifetime = NumberRange.new(3, 5); emiter.Rate = 150
+            emiter.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 150)), ColorSequenceKeypoint.new(0.5, Color3.fromRGB(100, 0, 255)), ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 0, 0))})
+            blackHolePart.Parent = workspace
+        end
+    else 
+        local bh = workspace:FindFirstChild("DeltaBlackHole") 
+        if bh then bh:Destroy() end 
+        stopThemeSound("Galaxy") 
+    end
+end
+
+-- 12. SAFE ENGINE X-RAY
+local originalTransparencies = _G.DeltaXrayTable or {}
+_G.DeltaXrayTable = originalTransparencies
+
+local function SetXrayVisionMode(enable)
+    if enable then
+        for _, part in pairs(workspace:GetDescendants()) do
+            if part:IsA("BasePart") and not part:IsDescendantOf(LocalPlayer.Character) then
+                if part.Name == "DeltaSnowTop" or part.Name == "DeltaWaterTop" or part.Name == "DeltaSandTop" or part.Parent == smokeFolder or part.Parent == rainFolder then 
+                    continue 
+                end
+                if not originalTransparencies[part] then
+                    originalTransparencies[part] = part.Transparency
+                end
+                part.Transparency = 0.75
+            end
+        end
+    else
+        for part, originalVal in pairs(originalTransparencies) do
+            if part and part.Parent then part.Transparency = originalVal end
+        end
+        table.clear(originalTransparencies)
+    end
+end
+
+local function transisiAtmosfer(jam, ambient, warnaKabut, jarakKabut, terang)
+    TweenService:Create(Lighting, TweenInfo.new(2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ClockTime = jam, OutdoorAmbient = ambient, FogColor = warnaKabut, FogEnd = jarakKabut, Brightness = terang}):Play()
+end
+
+-- ====================================================================
+-- XI. SISTEM SIKLUS WAKTU DINAMIS & FENOMENA OTOMATIS ⏰⚡
+-- ====================================================================
+
+-- State untuk menyalakan/mematikan siklus waktu
+_G.SiklusWaktuAktif = false
+
+local function JalankanSiklusWaktu(enable)
+    _G.SiklusWaktuAktif = enable
+    
+    if not enable then
+        if _G.DeltaVisualLoops["SiklusWaktu"] then 
+            task.cancel(_G.DeltaVisualLoops["SiklusWaktu"]) 
+            _G.DeltaVisualLoops["SiklusWaktu"] = nil 
+        end
+        return
+    end
+    
+    if _G.DeltaVisualLoops["SiklusWaktu"] then return end
+    
+    _G.DeltaVisualLoops["SiklusWaktu"] = task.spawn(function()
+        -- 1 menit real = 1 jam game (60 detik real = 1 jam game)
+        -- Berarti setiap 1 detik real, waktu game bertambah: 1 / 60 jam = 0.01666 jam (atau 1 menit game)
+        local WaktuPerDetik = 1 / 60 
+        
+        while _G.SiklusWaktuAktif do
+            local jamSekarang = Lighting.ClockTime
+            local jamBaru = (jamSekarang + WaktuPerDetik) % 24
+            Lighting.ClockTime = jamBaru
+            
+            -- ========================================================
+            -- MANAJEMEN FENOMENA OTOMATIS BERDASARKAN JAM GAME 🌌
+            -- ========================================================
+            
+            -- 1. KABUT PAGI SEJUK (Jam 05:00 - 07:00)
+            if jamBaru >= 5.0 and jamBaru < 7.0 then
+                if not _G.FiturAktif_KabutPagi then
+                    _G.FiturAktif_KabutPagi = true
+                    SetKabutPagi(true)
+                end
+            elseif _G.FitirAktif_KabutPagi and (jamBaru >= 7.0 or jamBaru < 5.0) then
+                _G.FiturAktif_KabutPagi = false
+                SetKabutPagi(false)
+            end
+            
+            -- 2. GERHANA MATAHARI TOTAL (Jam 11:30 - 12:30 siang)
+            if jamBaru >= 11.5 and jamBaru < 12.5 then
+                if not _G.FiturAktif_GerhanaMatahari then
+                    _G.FiturAktif_GerhanaMatahari = true
+                    -- Trigger Gerhana Matahari
+                    Lighting.Brightness = 0
+                    Lighting.OutdoorAmbient = Color3.fromRGB(15, 15, 20)
+                    Lighting.FogColor = Color3.fromRGB(10, 10, 15)
+                    Lighting.FogEnd = 200
+                end
+            elseif _G.FiturAktif_GerhanaMatahari and (jamBaru >= 12.5 or jamBaru < 11.5) then
+                _G.FiturAktif_GerhanaMatahari = false
+                -- Kembalikan pencahayaan siang normal
+                Lighting.Brightness = 2
+                Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
+                Lighting.FogColor = Color3.fromRGB(192, 192, 192)
+                Lighting.FogEnd = 100000
+            end
+
+            -- 3. GERHANA BULAN / BLOODMOON ESTETIK (Jam 21:00 - 23:00 malam)
+            if jamBaru >= 21.0 and jamBaru < 23.0 then
+                if not _G.FiturAktif_Bloodmoon then
+                    _G.FiturAktif_Bloodmoon = true
+                    Lighting.Brightness = 0.8
+                    Lighting.OutdoorAmbient = Color3.fromRGB(150, 80, 120) -- Pink/Ungu pastel tidak seram
+                    Lighting.FogColor = Color3.fromRGB(45, 30, 50)
+                    Lighting.FogEnd = 1200
+                end
+            elseif _G.FiturAktif_Bloodmoon and (jamBaru >= 23.0 or jamBaru < 21.0) then
+                _G.FiturAktif_Bloodmoon = false
+                -- Kembalikan pencahayaan malam normal
+                Lighting.Brightness = 0.5
+                Lighting.OutdoorAmbient = Color3.fromRGB(20, 20, 40)
+                Lighting.FogColor = Color3.fromRGB(10, 10, 25)
+                Lighting.FogEnd = 800
+            end
+
+            -- 4. AURORA BLUE-PURPLE (Jam 00:00 - 03:00 subuh)
+            if jamBaru >= 0.0 and jamBaru < 3.0 then
+                if not _G.FiturAktif_Aurora then
+                    _G.FiturAktif_Aurora = true
+                    setCustomSkybox(12073934337, "Aurora")
+                    Lighting.Brightness = 0
+                    Lighting.OutdoorAmbient = Color3.fromRGB(130, 50, 250)
+                    Lighting.FogColor = Color3.fromRGB(15, 20, 60)
+                    Lighting.FogEnd = 350
+                end
+            elseif _G.FiturAktif_Aurora and (jamBaru >= 3.0 and jamBaru < 5.0) then -- Matikan setelah lewat jam 3
+                _G.FiturAktif_Aurora = false
+                resetSkybox()
+            end
+            
+            task.wait(1) -- Update mendeteksi per detik real-time
+        end
+    end)
+end
+
+-- ====================================================================
+-- INTERFACE BINDING (SAFE TOGGLE FORMAT)
+-- ====================================================================
+createToggle(TemaMapFrame, "Efek Cuaca Salju ❄️", function(state) SetEfekSalju(state) SetSaljuDiAtasPart(state) end)
+createToggle(TemaMapFrame, "Badai Salju Extreme & Layar Beku 🌪️❄️", function(state) SetHeavyStorm(state) SetSaljuDiAtasPart(state) end)
+createToggle(TemaMapFrame, "Efek Cuaca Hujan Deras 🌧️💧", function(state) SetEfekHujan(state) SetGenanganAir(state) end)
+
+createToggle(TemaMapFrame, "Lapisan Padang Pasir Gurun 🏜️", function(state) SetPadangPasirMap(state) end)
+createToggle(TemaMapFrame, "Penerangan Api Dinamis Karakter 🔥", function(state) SetPeneranganApi(state) end)
+
+createToggle(TemaMapFrame, "Kabut 1: Pagi Hari Sejuk (Real) 🌫️🌅", function(state) SetKabutPagi(state) end)
+createToggle(TemaMapFrame, "Kabut 2: Asap Polusi Industri 💨🏭", function(state) SetAsapPolusi(state) end)
+createToggle(TemaMapFrame, "Gravitasi Bulan (Low Gravity) 🌙", function(state) SetMoonGravity(state) end)
+createToggle(TemaMapFrame, "Efek Tornado Luar Map 🌀", function(state) SetTornadoSystem(state) end)
+createToggle(TemaMapFrame, "Efek Langit Galaxy ✨", function(state) SetEfekGalaxy(state) end)
+createToggle(TemaMapFrame, "X-Ray Vision (Tembus Map) 👁️", function(state) SetXrayVisionMode(state) end)
+
+-- ** TEXTBOX INPUT GRAVITASI BEBAS (TANPA BATASAN) **
+createTextBox(TemaMapFrame, "Ubah Gravitasi Map 🌙", "Ketik angka (Normal: 196.2)...", function(teks)
+    local angka = tonumber(teks)
+    if angka then workspace.Gravity = angka else workspace.Gravity = 196.2 end
+end)
+createSimpleButton(TemaMapFrame, "Tema: Aurora Blue-Purple 🌌🔮", function() 
+    SetDaunGugur(false) setCustomSkybox(12073934337, "Aurora")
+    Lighting.ClockTime = 0
+    Lighting.Brightness = 0 
+    -- Mengubah ambient menjadi perpaduan ungu tua dan biru cerah
+    Lighting.OutdoorAmbient = Color3.fromRGB(130, 50, 250) -- Cahaya ungu
+    Lighting.FogColor = Color3.fromRGB(15, 20, 60) -- Kabut biru gelap mendinginkan suasana
+    Lighting.FogEnd = 350 
+    
+    local atm = getAtmosphere() 
+    TweenService:Create(atm, TweenInfo.new(1), {Density = 0.45, Color = Color3.fromRGB(100, 180, 255), Haze = 2.5}):Play()
+end)
+
+createSimpleButton(TemaMapFrame, "Tema: Gerhana Matahari ☀️🌑", function() 
+    SetDaunGugur(false) resetSkybox()
+    transisiAtmosfer(12, Color3.fromRGB(25, 25, 30), Color3.fromRGB(30, 30, 35), 450, 0.2) -- Jam siang tapi gelap total mendadak
+    local atm = getAtmosphere() TweenService:Create(atm, TweenInfo.new(2), {Density = 0.35, Color = Color3.fromRGB(30,30,35)}):Play()
+end)
+
+createSimpleButton(TemaMapFrame, "Tema: Gerhana Bulan (Bloodmoon Estetik) 🌸🌙", function() 
+    SetDaunGugur(false) resetSkybox()
+    
+    Lighting.ClockTime = 22 -- Diatur ke jam 10 malam agar suasana langitnya pas
+    Lighting.Brightness = 0.8 -- Memberikan sedikit pantulan cahaya bulan di objek glossy/metalik
+    
+    -- Mengubah cahaya sekitar menjadi merah muda keunguan yang lembut (tidak seram)
+    Lighting.OutdoorAmbient = Color3.fromRGB(150, 80, 120) 
+    
+    -- Warna kabut dibuat ungu pastel transparan agar map terlihat estetik
+    Lighting.FogColor = Color3.fromRGB(45, 30, 50) 
+    Lighting.FogEnd = 1200 -- Kabut dibuat sangat jauh agar map tetap terlihat terang dan luas
+    
+    -- Pengaturan atmosfer tambahan agar warna langit menyatu dengan lembut
+    local atm = getAtmosphere() 
+    TweenService:Create(atm, TweenInfo.new(1.5), {
+        Density = 0.2, -- Kabut atmosfer sangat tipis
+        Color = Color3.fromRGB(180, 100, 140), 
+        Haze = 1
+    }):Play()
+end)
+
+createSimpleButton(TemaMapFrame, "Tema: Kemarau & Daun Gugur 🍁", function() resetSkybox() SetDaunGugur(true) transisiAtmosfer(13.5, Color3.fromRGB(230, 160, 100), Color3.fromRGB(210, 140, 90), 900, 3.8) end)
+createSimpleButton(TemaMapFrame, "Tema: Sore 🌅", function() resetSkybox() SetDaunGugur(false) transisiAtmosfer(17.5, Color3.fromRGB(240, 120, 40), Color3.fromRGB(255, 90, 30), 600, 2) end)
+createSimpleButton(TemaMapFrame, "Tema: Subuh 🌆", function() resetSkybox() SetDaunGugur(false) transisiAtmosfer(5.3, Color3.fromRGB(60, 100, 160), Color3.fromRGB(30, 30, 80), 500, 1.5) end)
+createSimpleButton(TemaMapFrame, "Tema: Malam Estetik 🌙", function() resetSkybox() SetDaunGugur(false) transisiAtmosfer(20, Color3.fromRGB(20, 20, 40), Color3.fromRGB(10, 10, 25), 800, 0.5) end)
+
+createSimpleButton(TemaMapFrame, "Reset Tema Bawaan 🔄", function() 
+    resetSkybox() SetXrayVisionMode(false) SetPadangPasirMap(false) SetPeneranganApi(false) SetDaunGugur(false) SetAsapPolusi(false) SetKabutPagi(false) SetHeavyStorm(false) SetMoonGravity(false) SetEfekSalju(false) SetEfekHujan(false) SetTornadoSystem(false) SetEfekGalaxy(false)
+    workspace.Gravity = 196.2
+    transisiAtmosfer(14, Color3.fromRGB(128, 128, 128), Color3.fromRGB(192, 192, 192), 100000, 2) 
+    local atm = Lighting:FindFirstChildOfClass("Atmosphere") if atm then atm:Destroy() end
+end)
+
+-- ====================================================================
+-- TAMBAHKAN TOGGLE NYA KE INTERFACE UI KAMU
+-- ====================================================================
+createToggle(TemaMapFrame, "Siklus Waktu Otomatis (1 Mnt = 1 Jam) ⏰🔄", function(state)
+    JalankanSiklusWaktu(state)
+end)
+
+-- ==========================================
+-- IX. SCRIPT HUB & MULTI LOADSTRING 📜 (MEGA 50 SCRIPTS)
+-- ==========================================
+local ScriptHubFrame = createCategory("Script Hub 📜", 19)
+
+local HubHeader = Instance.new("TextLabel")
+HubHeader.Size = UDim2.new(1, 0, 0, 25)
+HubHeader.Text = "      ─── MEGA SCRIPT HUB (1-50) ───"
+HubHeader.TextColor3 = Color3.fromRGB(0, 255, 150)
+HubHeader.Font = Enum.Font.SourceSansBold
+HubHeader.BackgroundTransparency = 1
+HubHeader.TextXAlignment = Enum.TextXAlignment.Left
+HubHeader.Parent = ScriptHubFrame
+table.insert(ThemeObjects.SubTexts, HubHeader)
+
+-- Fungsi Eksekusi
+local function executeLoadstring(scriptData)
+    local success, err = pcall(function()
+        if string.match(scriptData, "^http") then
+            loadstring(game:HttpGet(scriptData))()
+        else
+            loadstring(scriptData)()
+        end
+    end)
+    if not success then
+        warn("Delta Universal GUI - Gagal mengeksekusi script: " .. tostring(err))
+    end
+end
+
+-- ==========================================
+-- DAFTAR 50 SCRIPT (UNIVERSAL & GAME SPECIFIC)
+-- ==========================================
+
+createSimpleButton(ScriptHubFrame, "1. Infinite Yield (Admin)", function() executeLoadstring("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source") end)
+createSimpleButton(ScriptHubFrame, "2. Dex Explorer V3", function() executeLoadstring("https://raw.githubusercontent.com/Babyhamsta/RBLX_Scripts/main/Universal/BypassedDarkDexV3.lua") end)
+createSimpleButton(ScriptHubFrame, "3. Unnamed ESP (Universal)", function() executeLoadstring("https://raw.githubusercontent.com/ic3w0lf22/Unnamed-ESP/master/UnnamedESP.lua") end)
+createSimpleButton(ScriptHubFrame, "4. CMD-X (Admin)", function() executeLoadstring("https://raw.githubusercontent.com/CMD-X/CMD-X/master/Source") end)
+createSimpleButton(ScriptHubFrame, "5. Brookhaven RP Hub", function() executeLoadstring("https://raw.githubusercontent.com/IceMael7/NewIceHub/main/Brookhaven") end)
+createSimpleButton(ScriptHubFrame, "6. Blox Fruits (AnDepZai)", function() executeLoadstring("https://raw.githubusercontent.com/AnDepZaiHub/AnDepZaiHubV2/main/BloxFruit.lua") end)
+createSimpleButton(ScriptHubFrame, "7. Fates ESP (Universal)", function() executeLoadstring("https://raw.githubusercontent.com/fatesc/fates-esp/main/main.lua") end)
+createSimpleButton(ScriptHubFrame, "8. God Mode (Kirimam)", function() executeLoadstring("https://raw.githubusercontent.com/Rawbr10/Roblox-Scripts/refs/heads/main/God%20Mode%20Script%20Universal") end)
+createSimpleButton(ScriptHubFrame, "9. Keyless Dex (Kirimam)", function() executeLoadstring("https://rawscripts.net/raw/Universal-Script-Keyless-Mobile-Dex-Reupload-22707") end)
+createSimpleButton(ScriptHubFrame, "10. Simple Spy V3", function() executeLoadstring("https://raw.githubusercontent.com/exxtremestuffs/SimpleSpySource/master/SimpleSpy.lua") end)
+
+createSimpleButton(ScriptHubFrame, "11. Eclipse Hub (MM2)", function() executeLoadstring("https://raw.githubusercontent.com/Doggo-cryto/EclipseMM2/master/Script.lua") end)
+createSimpleButton(ScriptHubFrame, "12. MS Doors Hub", function() executeLoadstring("https://raw.githubusercontent.com/mstudio45/MSDOORS/main/MSHUB_Loader.lua") end)
+createSimpleButton(ScriptHubFrame, "13. Vape V4 (Bedwars)", function() executeLoadstring("https://raw.githubusercontent.com/7GrandDadPGN/VapeV4ForRoblox/main/NewMainScript.lua") end)
+createSimpleButton(ScriptHubFrame, "14. Nameless Admin", function() executeLoadstring("https://raw.githubusercontent.com/FilteringEnabled/NamelessAdmin/main/Source") end)
+createSimpleButton(ScriptHubFrame, "15. Universal Aimbot & ESP", function() executeLoadstring("https://raw.githubusercontent.com/Averiias/Universal-ESP-Aimbot/main/main.lua") end)
+createSimpleButton(ScriptHubFrame, "16. Hydroxide (Remote Spy)", function() executeLoadstring("https://raw.githubusercontent.com/Polywagers/Hydroxide/main/init.lua") end)
+createSimpleButton(ScriptHubFrame, "17. Owls Hub (FPS Games)", function() executeLoadstring("https://raw.githubusercontent.com/CriShoux/OwlsHub/master/OwlHub.txt") end)
+createSimpleButton(ScriptHubFrame, "18. Orca Hub (Universal)", function() executeLoadstring("https://raw.githubusercontent.com/oxytay/Orca/main/Source.lua") end)
+createSimpleButton(ScriptHubFrame, "19. Reiko Hub (Keyboard)", function() executeLoadstring("https://raw.githubusercontent.com/advxz/ReikoHub/main/Keyboard") end)
+createSimpleButton(ScriptHubFrame, "20. Hoho Hub (Blox Fruits)", function() executeLoadstring("https://raw.githubusercontent.com/acsu123/HOHO_H/main/Loading_v2") end)
+
+createSimpleButton(ScriptHubFrame, "21. Vynixius (Da Hood)", function() executeLoadstring("https://raw.githubusercontent.com/Vynixu/Vynixius/main/Loader.lua") end)
+createSimpleButton(ScriptHubFrame, "22. Anti-AFK (Universal)", function() executeLoadstring("https://raw.githubusercontent.com/KazeOnTop/Anti-AFK/main/Anti-AFK.lua") end)
+createSimpleButton(ScriptHubFrame, "23. Universal Fly", function() executeLoadstring("https://raw.githubusercontent.com/meica05/fly/main/fly.lua") end)
+createSimpleButton(ScriptHubFrame, "24. Btools (Universal)", function() executeLoadstring("https://raw.githubusercontent.com/BaconLord120/Btools/main/Btools.lua") end)
+createSimpleButton(ScriptHubFrame, "25. Hitbox Expander", function() executeLoadstring("https://raw.githubusercontent.com/YURR-HUB/Hitbox-Expander/main/Hitbox.lua") end)
+createSimpleButton(ScriptHubFrame, "26. Blade Ball (Auto Parry)", function() executeLoadstring("https://raw.githubusercontent.com/1-2-12/Blade-Ball/main/Blade-Ball.lua") end)
+createSimpleButton(ScriptHubFrame, "27. Pet Simulator 99 Hub", function() executeLoadstring("https://raw.githubusercontent.com/Kuppa123/Pet-Sim-99/main/PS99.lua") end)
+createSimpleButton(ScriptHubFrame, "28. Universal Auto Clicker", function() executeLoadstring("https://raw.githubusercontent.com/EdgeIY/AutoClicker/main/AutoClicker.lua") end)
+createSimpleButton(ScriptHubFrame, "29. Chat Bypasser", function() executeLoadstring("https://raw.githubusercontent.com/BaconLord120/ChatBypasser/main/Chat.lua") end)
+createSimpleButton(ScriptHubFrame, "30. Noclip (Universal)", function() executeLoadstring("https://raw.githubusercontent.com/WeebExploits/Noclip/main/Noclip.lua") end)
+
+createSimpleButton(ScriptHubFrame, "31. Build A Boat (Auto Build)", function() executeLoadstring("https://raw.githubusercontent.com/RegularVynixu/Build-A-Boat-For-Treasure/main/BABFT.lua") end)
+createSimpleButton(ScriptHubFrame, "32. Slap Battles Hub", function() executeLoadstring("https://raw.githubusercontent.com/ionlyusegithubformcmods/1-Line-Scripts/main/Slap%20Battles") end)
+createSimpleButton(ScriptHubFrame, "33. Prison Life Admin", function() executeLoadstring("https://raw.githubusercontent.com/G00mbaar/Prison-Life-Admin/main/Admin.lua") end)
+createSimpleButton(ScriptHubFrame, "34. Arsenal (VG Hub)", function() executeLoadstring("https://raw.githubusercontent.com/1201for/V.G-Hub/mac/V.G%20Hub") end)
+createSimpleButton(ScriptHubFrame, "35. Adopt Me Auto Farm", function() executeLoadstring("https://raw.githubusercontent.com/IceMael7/NewIceHub/main/AdoptMe") end)
+createSimpleButton(ScriptHubFrame, "36. Jailbreak Auto Rob", function() executeLoadstring("https://raw.githubusercontent.com/RegularVynixu/Jailbreak/main/Jailbreak.lua") end)
+createSimpleButton(ScriptHubFrame, "37. Lumber Tycoon 2 (Blood)", function() executeLoadstring("https://raw.githubusercontent.com/Blood-TL2/Blood-Hub/main/BloodHub.lua") end)
+createSimpleButton(ScriptHubFrame, "38. King Legacy (Mukuro Hub)", function() executeLoadstring("https://raw.githubusercontent.com/xDepressionx/Free-Script/main/KingLegacy.lua") end)
+createSimpleButton(ScriptHubFrame, "39. Da Hood Aimlock", function() executeLoadstring("https://raw.githubusercontent.com/L1ZOT/Da-Hood/main/Aimlock.lua") end)
+createSimpleButton(ScriptHubFrame, "40. Flee The Facility ESP", function() executeLoadstring("https://raw.githubusercontent.com/ToraIsMe/ToraIsMe/main/FleeTheFacility.lua") end)
+
+createSimpleButton(ScriptHubFrame, "41. KAT Auto Farm", function() executeLoadstring("https://raw.githubusercontent.com/zReal-King/KAT/main/KAT.lua") end)
+createSimpleButton(ScriptHubFrame, "42. Tower of Hell (Auto Win)", function() executeLoadstring("https://raw.githubusercontent.com/RegularVynixu/Tower-Of-Hell/main/AutoWin.lua") end)
+createSimpleButton(ScriptHubFrame, "43. Walkspeed Modifier", function() executeLoadstring("https://raw.githubusercontent.com/BaconLord120/Walkspeed/main/Walkspeed.lua") end)
+createSimpleButton(ScriptHubFrame, "44. JumpPower Modifier", function() executeLoadstring("https://raw.githubusercontent.com/BaconLord120/JumpPower/main/JumpPower.lua") end)
+createSimpleButton(ScriptHubFrame, "45. Anime Defenders Hub", function() executeLoadstring("https://raw.githubusercontent.com/Kuppa123/Anime-Defenders/main/Hub.lua") end)
+createSimpleButton(ScriptHubFrame, "46. Pls Donate (Auto Beg)", function() executeLoadstring("https://raw.githubusercontent.com/RegularVynixu/Pls-Donate/main/AutoBeg.lua") end)
+createSimpleButton(ScriptHubFrame, "47. Breaking Point Aimbot", function() executeLoadstring("https://raw.githubusercontent.com/L1ZOT/Breaking-Point/main/Aimbot.lua") end)
+createSimpleButton(ScriptHubFrame, "48. Phantom Forces (ESP/Aim)", function() executeLoadstring("https://raw.githubusercontent.com/1201for/V.G-Hub/mac/Phantom-Forces") end)
+createSimpleButton(ScriptHubFrame, "49. invisible", function()
+    executeLoadstring("https://pastebin.com/raw/3Rnd9rHf")
+end)
+
+createSimpleButton(ScriptHubFrame, "50. Verse Xyc Hub", function()
+    executeLoadstring("https://pastebin.com/raw/Piw5bqGq")
+end)
+
+-- ==========================================
+-- FITUR INPUT CUSTOM / MULTI LOADSTRING
+-- ==========================================
+local CustomHubHeader = Instance.new("TextLabel")
+CustomHubHeader.Size = UDim2.new(1, 0, 0, 25)
+CustomHubHeader.Text = "      ─── MULTI / CUSTOM LOADSTRING ───"
+CustomHubHeader.TextColor3 = Color3.fromRGB(255, 150, 0)
+CustomHubHeader.Font = Enum.Font.SourceSansBold
+CustomHubHeader.BackgroundTransparency = 1
+CustomHubHeader.TextXAlignment = Enum.TextXAlignment.Left
+CustomHubHeader.Parent = ScriptHubFrame
+table.insert(ThemeObjects.SubTexts, CustomHubHeader)
+
+local customScriptInput = ""
+
+createTextBox(ScriptHubFrame, "Masukkan URL / Script", "Tempel code / link di sini", function(val)
+    customScriptInput = val
+end)
+
+createSimpleButton(ScriptHubFrame, "Eksekusi Custom Script ⚡", function()
+    if customScriptInput ~= "" and customScriptInput ~= "Tempel code / link di sini" then
+        executeLoadstring(customScriptInput)
+    end
+end)
+
+createSimpleButton(ScriptHubFrame, "Clear Input", function()
+    customScriptInput = ""
+    for _, child in pairs(ScriptHubFrame:GetDescendants()) do
+        if child:IsA("TextBox") and child.PlaceholderText == "Tempel code / link di sini" then
+            child.Text = ""
+        end
+    end
+end)
+
+ToggleButton.MouseButton1Click:Connect(function() MainFrame.Visible = not MainFrame.Visible end)
