@@ -1,0 +1,47 @@
+-- FUNGSI UI UTAMA (FLUENT)
+function LoadMainUI()
+    local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+    local Window = Fluent:CreateWindow({
+        Title = "TrueManz Menu", 
+        SubTitle = "Access Granted", 
+        TabWidth = 160, 
+        Size = UDim2.fromOffset(580, 460)
+    })
+
+    local Tab = Window:AddTab({Title = "Executors", Icon = "rbxassetid://10709791436"})
+
+    -- Fitur Bawaan Sebelumnya
+    Tab:AddButton({
+        Title = "Execute Premium Pro",
+        Callback = function() 
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/arifkarkirkurkarkirkur-glitch/TrueManz/refs/heads/main/PremiumProV1"))() 
+        end
+    })
+
+    Tab:AddButton({
+        Title = "Execute Premium",
+        Callback = function() 
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/arifkarkirkurkarkirkur-glitch/TrueManz/refs/heads/main/PremiumV1"))() 
+        end
+    })
+
+    Tab:AddButton({
+        Title = "Execute Free",
+        Callback = function() 
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/arifkarkirkurkarkirkur-glitch/TrueManz/refs/heads/main/FreeV1"))() 
+        end
+    })
+
+    -- Fitur Baru yang Anda Minta
+    Tab:AddButton({
+        Title = "Flashback Sc",
+        Callback = function() 
+            loadstring(game:HttpGet("https://pastebin.com/raw/fARYvrb6"))() 
+        end
+    })
+end
+
+-- LANGSUNG LOAD UI TANPA VALIDASI
+LoadMainUI()
+
+Bisa GK jadikan Luna library
